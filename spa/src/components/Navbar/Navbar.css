@@ -1,0 +1,229 @@
+/* ============================= */
+/* NAVBAR BASE */
+/* ============================= */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 80px;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+}
+
+.nav-container {
+  max-width: 1200px;
+  margin: auto;
+  padding: 0 40px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ============================= */
+/* LOGO */
+/* ============================= */
+.logo a {
+  font-family: serif;
+  font-size: 28px;
+  font-weight: 600;
+  color: white;
+  text-decoration: none;
+}
+
+/* ============================= */
+/* NAV LINKS */
+/* ============================= */
+nav {
+  display: flex;
+}
+
+.nav-links {
+  display: flex;
+  gap: 28px;
+  list-style: none;
+}
+
+.nav-links li a {
+  font-size: 15px;
+  color: white;
+  text-decoration: none;
+  transition: color 0.3s ease;
+  position: relative;
+}
+
+.nav-links li a:hover {
+  color: #ffb199;
+}
+
+/* underline hover */
+.nav-links li a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -6px;
+  width: 0%;
+  height: 2px;
+  background: #ffb199;
+  transition: width 0.3s ease;
+}
+
+.nav-links li a:hover::after {
+  width: 100%;
+}
+
+/* ============================= */
+/* AUTH LINKS (DESKTOP) */
+/* ============================= */
+.auth-links {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.user-name {
+  color: white;
+  font-size: 14px;
+}
+
+.login-btn {
+  color: white;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.login-btn:hover {
+  color: #ffb199;
+}
+
+.signup-btn {
+  padding: 8px 18px;
+  background: #ffb199;
+  border-radius: 20px;
+  color: white;
+  font-size: 14px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.signup-btn:hover {
+  background: #f29a82;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(255, 177, 153, 0.4);
+}
+
+.logout-btn {
+  background: transparent;
+  border: 1px solid white;
+  color: white;
+  padding: 6px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.logout-btn:hover {
+  background: white;
+  color: #333;
+}
+
+/* ============================= */
+/* HAMBURGER */
+/* ============================= */
+.menu-toggle {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 26px;
+  color: white;
+  cursor: pointer;
+}
+
+/* ============================= */
+/* 📱 MOBILE STYLES */
+/* ============================= */
+@media (max-width: 768px) {
+  .menu-toggle {
+    display: block;
+  }
+
+  nav {
+    position: absolute;
+    top: 80px;
+    left: 0;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    display: none;
+    flex-direction: column;
+  }
+
+  nav.open {
+    display: flex;
+  }
+
+  .nav-links {
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 0;
+    gap: 18px;
+  }
+
+  /* hide desktop auth */
+  .auth-links {
+    display: none;
+  }
+
+  /* show logout inside menu only (handled by JSX) */
+}
+.nav-link {
+  position: relative;
+}
+
+.nav-link::after {
+  content: "";
+  position: absolute;
+  width: 0;
+  height: 2px;
+  background: var(--secondary);
+  bottom: -6px;
+  left: 0;
+}
+
+.nav-link:hover::after {
+  width: 100%;
+}
+.navbar {
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+
+.nav-link.active {
+  color: #ff8f6b;
+  font-weight: 600;
+}
+/* =====================
+   MOBILE AUTH FIX
+===================== */
+.mobile-auth {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.desktop-only {
+  display: flex;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .desktop-only {
+    display: none;
+  }
+
+  .mobile-auth {
+    display: flex;
+  }
+}

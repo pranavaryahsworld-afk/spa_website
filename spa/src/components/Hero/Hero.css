@@ -1,0 +1,145 @@
+/* =====================
+   HERO SECTION
+===================== */
+.hero {
+  position: relative;
+  min-height: 100vh;
+  background-image: url("https://images.unsplash.com/photo-1540555700478-4be289fbecef");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+  padding: 0 60px;
+  overflow: hidden;
+  animation: heroZoom 18s ease-in-out infinite alternate;
+}
+
+/* Subtle background zoom */
+@keyframes heroZoom {
+  from {
+    background-size: 100%;
+  }
+  to {
+    background-size: 105%;
+  }
+}
+
+/* OVERLAY */
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 0.78),
+    rgba(0, 0, 0, 0.35)
+  );
+}
+
+/* CONTENT */
+.hero-content {
+  position: relative;
+  max-width: 650px;
+  color: white;
+}
+
+/* TITLE */
+.hero-title {
+  font-size: 64px;
+  font-weight: 700;
+  line-height: 1.1;
+  margin-bottom: 20px;
+  opacity: 0;
+  animation: fadeUp 0.9s ease forwards;
+  color: white;
+}
+
+.hero-title span {
+  color: #ff8a65;
+}
+
+/* SUBTITLE */
+.hero-subtitle {
+  font-size: 18px;
+  line-height: 1.6;
+  margin-bottom: 40px;
+  opacity: 0;
+  animation: fadeUp 0.9s ease forwards;
+  animation-delay: 0.25s;
+  color: white;
+}
+
+/* BUTTONS */
+.hero-actions {
+  display: flex;
+  gap: 16px;
+  opacity: 0;
+  animation: fadeUp 0.9s ease forwards;
+  animation-delay: 0.45s;
+}
+
+.btn {
+  padding: 14px 30px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+/* PRIMARY CTA */
+.btn.primary {
+  background: #ff8a65;
+  color: #000;
+  box-shadow: 0 10px 30px rgba(255, 138, 101, 0.35);
+}
+
+.btn.primary:hover {
+  background: #ff7043;
+  transform: translateY(-3px);
+  box-shadow: 0 16px 40px rgba(255, 138, 101, 0.45);
+}
+
+/* SECONDARY CTA */
+.btn.secondary {
+  background: transparent;
+  border: 2px solid white;
+  color: white;
+}
+
+.btn.secondary:hover {
+  background: white;
+  color: black;
+  transform: translateY(-3px);
+}
+
+/* ANIMATION */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .hero {
+    padding: 0 24px;
+    text-align: center;
+  }
+
+ 
+
+  .hero-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+.hero {
+  background-attachment: fixed;
+}

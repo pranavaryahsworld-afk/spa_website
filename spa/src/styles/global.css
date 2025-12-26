@@ -1,0 +1,157 @@
+/* =====================
+   CSS RESET (SAFE)
+===================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* =====================
+   ROOT VARIABLES
+===================== */
+:root {
+  --primary: #ff8a65;
+  --primary-dark: #ff7043;
+  --dark: #111;
+  --text: #333;
+  --muted: #666;
+  --bg-light: #f9f9f9;
+  --radius: 14px;
+}
+
+/* =====================
+   BASE
+===================== */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--text);
+  background: white;
+  line-height: 1.6;
+}
+
+/* =====================
+   HEADINGS
+===================== */
+h1, h2, h3, h4 {
+  font-weight: 600;
+  color: var(--dark);
+}
+
+h2 {
+  font-size: 32px;
+}
+
+p {
+  color: var(--muted);
+}
+
+/* =====================
+   SECTION SPACING
+===================== */
+section {
+  padding: 100px 40px;
+}
+
+@media (max-width: 768px) {
+  section {
+    padding: 80px 24px;
+  }
+}
+
+/* =====================
+   BUTTON CONSISTENCY
+===================== */
+button,
+.btn {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* =====================
+   LINKS
+===================== */
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* =====================
+   IMAGES
+===================== */
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* =====================
+   CARD FEEL (GLOBAL)
+===================== */
+.card {
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: 0 12px 35px rgba(0,0,0,0.08);
+}
+
+/* =====================
+   SMOOTH TRANSITIONS
+===================== */
+button,
+a,
+.card {
+  transition: all 0.3s ease;
+}
+/* =====================
+   PREMIUM SCROLL REVEALS
+===================== */
+.reveal {
+  opacity: 0;
+  filter: blur(6px);
+  transition: all 1s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* UP */
+.reveal.up {
+  transform: translateY(60px) scale(0.96);
+}
+
+/* LEFT */
+.reveal.left {
+  transform: translateX(-60px) scale(0.96);
+}
+
+/* RIGHT */
+.reveal.right {
+  transform: translateX(60px) scale(0.96);
+}
+
+/* IMAGE DEPTH */
+.reveal.image {
+  transform: scale(0.92);
+}
+
+/* ACTIVE */
+.reveal.active {
+  opacity: 1;
+  filter: blur(0);
+  transform: translate(0) scale(1);
+}
+.reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: all 0.9s ease;
+}
+
+.reveal.active {
+  opacity: 1;
+  transform: translateY(0);
+}
