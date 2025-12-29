@@ -13,15 +13,19 @@ const app = express();
 /* ======================
    MIDDLEWARE
 ====================== */
+const cors = require("cors");
+
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000",
-      "https://your-spa.vercel.app"
-    ],
-    credentials: true,
+    origin: "*", // allow all origins
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
+// IMPORTANT: handle preflight requests
+app.options("*", cors());
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
