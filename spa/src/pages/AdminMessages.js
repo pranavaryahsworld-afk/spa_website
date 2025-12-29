@@ -1,32 +1,31 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import "./AdminDashboard.css";
+import API_BASE_URL from "../utils/api";
 
 export default function AdminMessages() {
   const [messages, setMessages] = useState([]);
   const [replyText, setReplyText] = useState("");
   const [loading, setLoading] = useState(false);
 
-  /* =====================
-     FETCH MESSAGES
-  ===================== */
-  const fetchMessages = async () => {
+  const token = localStorage.getItem("token");
+
+  const fetchMessages = useCallback(async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/contact");
+      const res = await axios.get(`${API_BASE_URL}/api/contact`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setMessages(res.data);
     } catch {
       toast.error("Failed to load messages");
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     fetchMessages();
-  }, []);
+  }, [fetchMessages]);
 
-  /* =====================
-     SEND REPLY
-  ===================== */
   const sendReply = async (id) => {
     if (!replyText.trim()) {
       toast.error("Reply cannot be empty");
@@ -36,8 +35,9 @@ export default function AdminMessages() {
     setLoading(true);
     try {
       await axios.post(
-        `http://localhost:5000/api/contact/${id}/reply`,
-        { reply: replyText }
+        `${API_BASE_URL}/api/contact/${id}/reply`,
+        { reply: replyText },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success("Reply sent");
       setReplyText("");
@@ -53,18 +53,9 @@ export default function AdminMessages() {
     <div className="admin-dashboard">
       <h2>Contact Messages</h2>
 
-      {messages.length === 0 && (
-        <p className="empty">No messages yet</p>
-      )}
-
       {messages.map((m) => (
         <div key={m._id} className="card">
           <p><b>{m.firstName} {m.lastName}</b></p>
-          <p>📧 {m.email}</p>
-
-          {/* 🔥 MOBILE NUMBER */}
-          <p>📞 {m.phone}</p>
-
           <p>{m.message}</p>
 
           <textarea
@@ -73,14 +64,9 @@ export default function AdminMessages() {
             onChange={(e) => setReplyText(e.target.value)}
           />
 
-          <div className="actions">
-            <button
-              disabled={loading}
-              onClick={() => sendReply(m._id)}
-            >
-              Reply
-            </button>
-          </div>
+          <button disabled={loading} onClick={() => sendReply(m._id)}>
+            Reply
+          </button>
         </div>
       ))}
     </div>

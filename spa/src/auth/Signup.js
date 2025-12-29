@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import "./Auth.css";
+import API_BASE_URL from "../utils/api";
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -22,7 +23,7 @@ export default function Signup() {
   const sendOTP = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:5000/api/auth/signup-otp", form);
+      await axios.post(`${API_BASE_URL}/api/auth/signup-otp`, form);
       toast.success("OTP sent to email");
       setStep(2);
     } catch (err) {
@@ -33,7 +34,7 @@ export default function Signup() {
   const verifyOTP = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:5000/api/auth/verify-otp", {
+      await axios.post(`${API_BASE_URL}/api/auth/verify-otp`, {
         email: form.email,
         otp: form.otp,
       });

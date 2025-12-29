@@ -2,6 +2,7 @@ import { useState } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import "./Contact.css";
+import API_BASE_URL from "../../utils/api";
 
 export default function Contact() {
   const [formData, setFormData] = useState({
@@ -20,7 +21,7 @@ export default function Contact() {
     e.preventDefault();
 
     try {
-      await axios.post("http://localhost:5000/api/contact", formData);
+      await axios.post(`${API_BASE_URL}/api/contact`, formData);
       toast.success("Message sent successfully");
       setFormData({
         firstName: "",

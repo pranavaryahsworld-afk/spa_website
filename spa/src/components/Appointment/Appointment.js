@@ -3,6 +3,7 @@ import axios from "axios";
 import "./Appointment.css";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
+import API_BASE_URL from "../../utils/api";
 
 export default function Appointment() {
   const navigate = useNavigate();
@@ -56,8 +57,13 @@ export default function Appointment() {
 
     try {
       await axios.post(
-        "http://localhost:5000/api/appointments",
-        formData
+        `${API_BASE_URL}/api/appointments`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
 
       setSuccess("Appointment booked successfully!");

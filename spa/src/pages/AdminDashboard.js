@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { Toaster, toast } from "react-hot-toast";
 import "./AdminDashboard.css";
+import API_BASE_URL from "../utils/api";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -10,74 +11,66 @@ export default function AdminDashboard() {
   const [appointments, setAppointments] = useState([]);
   const [messages, setMessages] = useState([]);
   const [activeTab, setActiveTab] = useState("appointments");
-
-  // ✅ per-message reply state
   const [replyText, setReplyText] = useState({});
 
-  const [loading, setLoading] = useState(false);
-
-  const [confirmBox, setConfirmBox] = useState({
-    open: false,
-    action: null,
-    id: null,
-  });
+  const token = localStorage.getItem("token");
 
   /* =====================
      FETCH DATA
   ===================== */
-  useEffect(() => {
-    fetchAppointments();
-    fetchMessages();
-  }, []);
-
-  const fetchAppointments = async () => {
+  const fetchAppointments = useCallback(async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/appointments");
+      const res = await axios.get(`${API_BASE_URL}/api/appointments`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setAppointments(res.data);
     } catch {
       toast.error("Failed to load appointments");
     }
-  };
+  }, [token]);
 
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/contact");
+      const res = await axios.get(`${API_BASE_URL}/api/contact`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setMessages(res.data);
     } catch {
       toast.error("Failed to load messages");
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    fetchAppointments();
+    fetchMessages();
+  }, [fetchAppointments, fetchMessages]);
 
   /* =====================
      APPOINTMENT ACTIONS
   ===================== */
   const updateStatus = async (id, status) => {
-    setLoading(true);
     try {
       await axios.put(
-        `http://localhost:5000/api/appointments/${id}/status`,
-        { status }
+        `${API_BASE_URL}/api/appointments/${id}/status`,
+        { status },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success(`Appointment ${status}`);
       fetchAppointments();
     } catch {
       toast.error("Status update failed");
-    } finally {
-      setLoading(false);
     }
   };
 
   const deleteAppointment = async (id) => {
-    setLoading(true);
     try {
-      await axios.delete(`http://localhost:5000/api/appointments/${id}`);
+      await axios.delete(`${API_BASE_URL}/api/appointments/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       toast.success("Appointment deleted");
       fetchAppointments();
     } catch {
       toast.error("Delete failed");
-    } finally {
-      setLoading(false);
-      closeConfirm();
     }
   };
 
@@ -86,38 +79,31 @@ export default function AdminDashboard() {
   ===================== */
   const sendReply = async (id) => {
     const reply = replyText[id];
-
-    if (!reply || !reply.trim()) {
+    if (!reply?.trim()) {
       toast.error("Reply cannot be empty");
       return;
     }
 
-    setLoading(true);
     try {
       await axios.post(
-        `http://localhost:5000/api/contact/${id}/reply`,
-        { reply }
+        `${API_BASE_URL}/api/contact/${id}/reply`,
+        { reply },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success("Reply sent");
-
-      setReplyText((prev) => ({
-        ...prev,
-        [id]: "",
-      }));
-
+      setReplyText((prev) => ({ ...prev, [id]: "" }));
       fetchMessages();
     } catch {
       toast.error("Failed to send reply");
-    } finally {
-      setLoading(false);
     }
   };
 
   const toggleRead = async (id, isRead) => {
     try {
       await axios.put(
-        `http://localhost:5000/api/contact/${id}/read`,
-        { isRead: !isRead }
+        `${API_BASE_URL}/api/contact/${id}/read`,
+        { isRead: !isRead },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       fetchMessages();
     } catch {
@@ -126,36 +112,14 @@ export default function AdminDashboard() {
   };
 
   const deleteMessage = async (id) => {
-    setLoading(true);
     try {
-      await axios.delete(`http://localhost:5000/api/contact/${id}`);
+      await axios.delete(`${API_BASE_URL}/api/contact/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       toast.success("Message deleted");
       fetchMessages();
     } catch {
       toast.error("Delete failed");
-    } finally {
-      setLoading(false);
-      closeConfirm();
-    }
-  };
-
-  /* =====================
-     CONFIRM MODAL
-  ===================== */
-  const openConfirm = (action, id) => {
-    setConfirmBox({ open: true, action, id });
-  };
-
-  const closeConfirm = () => {
-    setConfirmBox({ open: false, action: null, id: null });
-  };
-
-  const confirmAction = () => {
-    if (confirmBox.action === "deleteAppointment") {
-      deleteAppointment(confirmBox.id);
-    }
-    if (confirmBox.action === "deleteMessage") {
-      deleteMessage(confirmBox.id);
     }
   };
 
@@ -196,110 +160,33 @@ export default function AdminDashboard() {
         </button>
       </div>
 
-      {/* APPOINTMENTS */}
       {activeTab === "appointments" &&
         appointments.map((a) => (
           <div key={a._id} className="card">
-            <div className="card-header">
-              <p><b>{a.name}</b> — {a.treatment}</p>
-              <span className={`status ${a.status}`}>{a.status}</span>
+            <p><b>{a.name}</b> — {a.treatment}</p>
+            <p>{a.date} | {a.timeSlot}</p>
+
+            <div className="actions">
+              <button onClick={() => updateStatus(a._id, "approved")}>Approve</button>
+              <button onClick={() => updateStatus(a._id, "rejected")}>Reject</button>
+              <button className="danger" onClick={() => deleteAppointment(a._id)}>
+                Delete
+              </button>
             </div>
-
-            <p className="time">{a.date} | {a.timeSlot}</p>
-
-     <div className="actions">
-  <button
-    disabled={loading || a.status === "approved"}
-    onClick={() => updateStatus(a._id, "approved")}
-  >
-    Approve
-  </button>
-
-  <button
-    disabled={loading || a.status === "rejected"}
-    onClick={() => updateStatus(a._id, "rejected")}
-  >
-    Reject
-  </button>
-
-  {a.status === "approved" && (
-    <a
-      href={`https://wa.me/91${a.phone}?text=${encodeURIComponent(
-        `Hello ${a.name} 👋\n\nYour appointment for ${a.treatment}\n📅 ${a.date}\n⏰ ${a.timeSlot}\n\n✅ Status: APPROVED\n\nThank you,\nWellSpa`
-      )}`}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="btn-whatsapp"
-    >
-      💬 WhatsApp
-    </a>
-  )}
-    {a.status === "rejected" && (
-    <a
-      href={`https://wa.me/91${a.phone}?text=${encodeURIComponent(
-        `Hello ${a.name} 👋\n\nUnfortunately, your appointment for ${a.treatment}\n📅 ${a.date}\n⏰ ${a.timeSlot}\n\n❌ Status: REJECTED\n\nPlease contact us to reschedule.\n\n— WellSpa`
-      )}`}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="btn-whatsapp rejected"
-    >
-      💬 WhatsApp
-    </a>
-  )}
-
-  <button
-    className="danger"
-    onClick={() => openConfirm("deleteAppointment", a._id)}
-  >
-    Delete
-  </button>
-</div>
-
           </div>
         ))}
 
-      {/* MESSAGES */}
       {activeTab === "messages" &&
         messages.map((m) => (
-<div
-  key={m._id}
-  className="card"
-  style={{
-    borderLeft: m.isRead ? "none" : "5px solid #ff8a65",
-  }}
->
+          <div key={m._id} className="card">
             <p><b>{m.firstName} {m.lastName}</b></p>
-            <p>📧 {m.email}</p>
-            <p>📞 {m.phone}</p>
             <p>{m.message}</p>
-
-            {/* 📞 CALL + 💬 WHATSAPP */}
-            <div className="actions">
-              <a
-                href={`tel:${m.phone}`}
-                className="btn-call"
-              >
-                📞 Call
-              </a>
-
-              <a
-                href={`https://wa.me/91${m.phone}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-whatsapp"
-              >
-                💬 WhatsApp
-              </a>
-            </div>
 
             <textarea
               placeholder="Reply..."
               value={replyText[m._id] || ""}
               onChange={(e) =>
-                setReplyText((prev) => ({
-                  ...prev,
-                  [m._id]: e.target.value,
-                }))
+                setReplyText((prev) => ({ ...prev, [m._id]: e.target.value }))
               }
             />
 
@@ -308,27 +195,12 @@ export default function AdminDashboard() {
               <button onClick={() => toggleRead(m._id, m.isRead)}>
                 {m.isRead ? "Unread" : "Read"}
               </button>
-              <button
-                className="danger"
-                onClick={() => openConfirm("deleteMessage", m._id)}
-              >
+              <button className="danger" onClick={() => deleteMessage(m._id)}>
                 Delete
               </button>
             </div>
           </div>
         ))}
-
-      {confirmBox.open && (
-        <div className="modal">
-          <div className="modal-box">
-            <p>Are you sure?</p>
-            <div className="actions">
-              <button onClick={confirmAction}>Yes</button>
-              <button onClick={closeConfirm}>Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

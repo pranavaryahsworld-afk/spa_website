@@ -3,6 +3,9 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import "./ServiceSection.css";
 import { toast } from "react-hot-toast";
+import API_BASE_URL from "../../utils/api";
+
+
 
 export default function ServiceSection() {
   const [services, setServices] = useState([]);
@@ -14,7 +17,10 @@ export default function ServiceSection() {
 
   const fetchServices = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/services");
+      const res = await axios.get(
+  `${API_BASE_URL}/api/services`
+);
+
       setServices(res.data.slice(0, 3));
     } catch (err) {
       console.error("Failed to fetch services", err);
