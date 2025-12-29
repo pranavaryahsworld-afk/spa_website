@@ -11,20 +11,25 @@ const contactRoutes = require("./routes/contactRoutes");
 const app = express();
 
 /* ======================
-   MIDDLEWARE
+   CORS — FINAL FIX
 ====================== */
-const cors = require("cors");
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+  );
+  res.header(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS"
+  );
 
-app.use(
-  cors({
-    origin: "*", // allow all origins
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
 
-// IMPORTANT: handle preflight requests
-app.options("*", cors());
+  next();
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -32,7 +37,7 @@ app.use(express.urlencoded({ extended: true }));
 /* ======================
    ROUTES
 ====================== */
-app.use("/api/auth", authRoutes);        // ✅ PUBLIC
+app.use("/api/auth", authRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/contact", contactRoutes);
@@ -43,7 +48,10 @@ app.use("/api/contact", contactRoutes);
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB Connected"))
-  .catch((err) => console.error("Mongo Error:", err));
+  .catch((err) => {
+    console.error("Mongo Error:", err);
+    process.exit(1);
+  });
 
 /* ======================
    SERVER
