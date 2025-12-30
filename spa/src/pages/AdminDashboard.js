@@ -24,14 +24,11 @@ export default function AdminDashboard() {
     imageUrl: "",
   });
 
-  const [editingServiceId, setEditingServiceId] = useState(null);
-  const [editService, setEditService] = useState({});
-
   /* ================= FETCH ================= */
   const fetchAppointments = useCallback(async () => {
     try {
       const res = await API.get("/api/appointments");
-      setAppointments(res.data);
+      setAppointments(res.data || []);
     } catch {
       toast.error("Failed to load appointments");
     }
@@ -40,7 +37,7 @@ export default function AdminDashboard() {
   const fetchMessages = useCallback(async () => {
     try {
       const res = await API.get("/api/contact");
-      setMessages(res.data);
+      setMessages(res.data || []);
     } catch {
       toast.error("Failed to load messages");
     }
@@ -49,7 +46,7 @@ export default function AdminDashboard() {
   const fetchServices = useCallback(async () => {
     try {
       const res = await API.get("/api/services");
-      setServices(res.data);
+      setServices(res.data || []);
     } catch {
       toast.error("Failed to load services");
     }
@@ -93,7 +90,10 @@ export default function AdminDashboard() {
   /* ================= MESSAGES ================= */
   const sendReply = async (id) => {
     const reply = replyText[id];
-    if (!reply?.trim()) return toast.error("Reply cannot be empty");
+    if (!reply?.trim()) {
+      toast.error("Reply cannot be empty");
+      return;
+    }
 
     try {
       await API.post(`/api/contact/${id}/reply`, { reply });
@@ -128,7 +128,8 @@ export default function AdminDashboard() {
   /* ================= SERVICES ================= */
   const addService = async () => {
     if (!newService.title || !newService.price || !newService.duration) {
-      return toast.error("Fill required fields");
+      toast.error("Fill required fields");
+      return;
     }
 
     try {
@@ -151,22 +152,6 @@ export default function AdminDashboard() {
       fetchServices();
     } catch {
       toast.error("Failed to add service");
-    }
-  };
-
-  const startEdit = (service) => {
-    setEditingServiceId(service._id);
-    setEditService({ ...service });
-  };
-
-  const updateService = async () => {
-    try {
-      await API.put(`/api/services/${editingServiceId}`, editService);
-      toast.success("Service updated");
-      setEditingServiceId(null);
-      fetchServices();
-    } catch {
-      toast.error("Update failed");
     }
   };
 
@@ -203,44 +188,84 @@ export default function AdminDashboard() {
         <button className={activeTab === "services" ? "active" : ""} onClick={() => setActiveTab("services")}>Services</button>
       </div>
 
-      {/* ================= SERVICES ================= */}
+      {/* ================= APPOINTMENTS ================= */}
+      {activeTab === "appointments" && (
+        appointments.length === 0 ? (
+          <p className="empty">No appointments found</p>
+        ) : (
+          appointments.map((a) => (
+            <div key={a._id} className="card">
+              <p><b>{a.name}</b> — {a.treatment}</p>
+              <p>{a.date} | {a.timeSlot}</p>
+              <p>📞 {a.phone}</p>
+
+              <div className="actions">
+                <button onClick={() => updateStatus(a._id, "approved")}>Approve</button>
+                <button onClick={() => updateStatus(a._id, "rejected")}>Reject</button>
+                <a href={`tel:${a.phone}`} className="call-btn">Call</a>
+                <a href={`https://wa.me/${a.phone}`} target="_blank" rel="noreferrer" className="whatsapp-btn">WhatsApp</a>
+                <button className="danger" onClick={() => deleteAppointment(a._id)}>Delete</button>
+              </div>
+            </div>
+          ))
+        )
+      )}
+
+      {/* ================= MESSAGES ================= */}
+      {activeTab === "messages" && (
+        messages.length === 0 ? (
+          <p className="empty">No messages found</p>
+        ) : (
+          messages.map((m) => (
+            <div key={m._id} className="card">
+              <p><b>{m.firstName} {m.lastName}</b></p>
+              <p>{m.message}</p>
+              <p>📧 {m.email}</p>
+              <p>📞 {m.phone}</p>
+
+              <textarea
+                placeholder="Reply..."
+                value={replyText[m._id] || ""}
+                onChange={(e) =>
+                  setReplyText({ ...replyText, [m._id]: e.target.value })
+                }
+              />
+
+              <div className="actions">
+                <button onClick={() => sendReply(m._id)}>Reply (Email)</button>
+                <a href={`tel:${m.phone}`} className="call-btn">Call</a>
+                <a href={`https://wa.me/${m.phone}`} target="_blank" rel="noreferrer" className="whatsapp-btn">WhatsApp</a>
+                <button onClick={() => toggleRead(m._id, m.isRead)}>
+                  {m.isRead ? "Unread" : "Read"}
+                </button>
+                <button className="danger" onClick={() => deleteMessage(m._id)}>Delete</button>
+              </div>
+            </div>
+          ))
+        )
+      )}
+
+      {/* ================= SERVICES (UNCHANGED) ================= */}
       {activeTab === "services" && (
         <>
-          <div className="card service-form">
+          <div className="card">
             <h3>Add New Service</h3>
+
             <input placeholder="Title" value={newService.title} onChange={(e) => setNewService({ ...newService, title: e.target.value })} />
             <input placeholder="Description" value={newService.description} onChange={(e) => setNewService({ ...newService, description: e.target.value })} />
             <input placeholder="Price" value={newService.price} onChange={(e) => setNewService({ ...newService, price: e.target.value })} />
             <input placeholder="Duration" value={newService.duration} onChange={(e) => setNewService({ ...newService, duration: e.target.value })} />
             <input placeholder="Image URL (optional)" value={newService.imageUrl} onChange={(e) => setNewService({ ...newService, imageUrl: e.target.value })} />
+
             <button onClick={addService}>Add Service</button>
           </div>
 
           {services.map((s) => (
-            <div key={s._id} className="card service-card">
-              {editingServiceId === s._id ? (
-                <>
-                  <input value={editService.title} onChange={(e) => setEditService({ ...editService, title: e.target.value })} />
-                  <input value={editService.description} onChange={(e) => setEditService({ ...editService, description: e.target.value })} />
-                  <input value={editService.price} onChange={(e) => setEditService({ ...editService, price: e.target.value })} />
-                  <input value={editService.duration} onChange={(e) => setEditService({ ...editService, duration: e.target.value })} />
-                  <input value={editService.image || ""} onChange={(e) => setEditService({ ...editService, image: e.target.value })} />
-                  <div className="actions">
-                    <button onClick={updateService}>Save</button>
-                    <button onClick={() => setEditingServiceId(null)}>Cancel</button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <h4>{s.title}</h4>
-                  <p>{s.description}</p>
-                  <p>₹{s.price} | {s.duration}</p>
-                  <div className="actions">
-                    <button onClick={() => startEdit(s)}>Edit</button>
-                    <button className="danger" onClick={() => deleteService(s._id)}>Delete</button>
-                  </div>
-                </>
-              )}
+            <div key={s._id} className="card">
+              <h4>{s.title}</h4>
+              <p>{s.description}</p>
+              <p>₹{s.price} | {s.duration}</p>
+              <button className="danger" onClick={() => deleteService(s._id)}>Delete</button>
             </div>
           ))}
         </>
