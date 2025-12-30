@@ -1,122 +1,114 @@
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
-const { Resend } = require("resend");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const { Resend } = require("resend");
 
-/* =====================
-   RESEND CONFIG
-===================== */
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-/* =====================
-   SEND OTP (SIGNUP)
-===================== */
+/* =========================
+   SEND SIGNUP OTP
+========================= */
 exports.sendSignupOTP = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
-      return res.status(400).json({ message: "All fields are required" });
+      return res.status(400).json({ message: "All fields required" });
     }
 
     const existingUser = await User.findOne({ email });
-    if (existingUser && existingUser.isVerified) {
+    if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await User.findOneAndUpdate(
-      { email },
-      {
-        name,
-        email,
-        password: hashedPassword,
-        otp,
-        otpExpires: Date.now() + 5 * 60 * 1000,
-        isVerified: false,
-        role: "user",
-      },
-      { upsert: true }
-    );
+    await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      otp,
+      otpExpiry: Date.now() + 10 * 60 * 1000, // 10 min
+      isVerified: false,
+    });
 
     await resend.emails.send({
       from: process.env.EMAIL_FROM,
       to: email,
-      subject: "Your WellSpa OTP",
+      subject: "WellSpa Signup OTP",
       html: `
-        <h3>WellSpa OTP Verification</h3>
+        <h2>Welcome to WellSpa 🌿</h2>
         <p>Your OTP is:</p>
-        <h2>${otp}</h2>
-        <p>This OTP is valid for 5 minutes.</p>
+        <h1>${otp}</h1>
+        <p>This OTP is valid for 10 minutes.</p>
       `,
     });
 
     res.json({ success: true, message: "OTP sent to email" });
   } catch (err) {
-    console.error("OTP SEND ERROR:", err);
+    console.error("SIGNUP OTP ERROR:", err);
     res.status(500).json({ message: "Failed to send OTP" });
   }
 };
 
-/* =====================
-   VERIFY OTP (SIGNUP)
-===================== */
+/* =========================
+   VERIFY SIGNUP OTP
+========================= */
 exports.verifySignupOTP = async (req, res) => {
   try {
     const { email, otp } = req.body;
 
     const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ message: "User not found" });
 
-    if (!user || user.otp !== otp || user.otpExpires < Date.now()) {
+    if (user.isVerified) {
+      return res.status(400).json({ message: "User already verified" });
+    }
+
+    if (user.otp !== otp || user.otpExpiry < Date.now()) {
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
     user.isVerified = true;
     user.otp = undefined;
-    user.otpExpires = undefined;
+    user.otpExpiry = undefined;
     await user.save();
 
-    res.json({ success: true, message: "Signup verified successfully" });
+    res.json({ success: true, message: "Signup successful" });
   } catch (err) {
-    console.error("OTP VERIFY ERROR:", err);
+    console.error("VERIFY OTP ERROR:", err);
     res.status(500).json({ message: "OTP verification failed" });
   }
 };
 
-/* =====================
+/* =========================
    LOGIN
-===================== */
+========================= */
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(401).json({ message: "Invalid credentials" });
+    if (!user) return res.status(400).json({ message: "Invalid credentials" });
+
+    if (!user.isVerified) {
+      return res.status(403).json({ message: "Please verify your email first" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-
-    // 🚨 OTP CHECK ONLY FOR NORMAL USERS
-    if (user.role === "user" && !user.isVerified) {
-      return res.status(403).json({ message: "Please verify your account" });
-    }
+    if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
 
     const token = jwt.sign(
-      { id: user._id, role: user.role },
+      { id: user._id, role: user.role || "user" },
       process.env.JWT_SECRET,
-      { expiresIn: "1d" }
+      { expiresIn: "7d" }
     );
 
     res.json({
       token,
-      role: user.role,
+      role: user.role || "user",
       name: user.name,
     });
   } catch (err) {
@@ -125,76 +117,63 @@ exports.login = async (req, res) => {
   }
 };
 
-/* =====================
+/* =========================
    FORGOT PASSWORD
-===================== */
+========================= */
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
 
     const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    if (!user) return res.status(404).json({ message: "User not found" });
 
     const resetToken = crypto.randomBytes(32).toString("hex");
-
-    user.resetToken = crypto
-      .createHash("sha256")
-      .update(resetToken)
-      .digest("hex");
-
-    user.resetTokenExpire = Date.now() + 15 * 60 * 1000;
+    user.resetToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+    user.resetTokenExpiry = Date.now() + 15 * 60 * 1000;
     await user.save();
 
     const resetLink = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
 
     await resend.emails.send({
       from: process.env.EMAIL_FROM,
-      to: user.email,
+      to: email,
       subject: "WellSpa Password Reset",
       html: `
-        <h3>Password Reset</h3>
-        <p>Click the link below to reset your password:</p>
+        <p>Click below to reset your password:</p>
         <a href="${resetLink}">Reset Password</a>
-        <p>This link expires in 15 minutes.</p>
+        <p>Valid for 15 minutes.</p>
       `,
     });
 
-    res.json({ message: "Reset link sent to email" });
+    res.json({ message: "Password reset link sent to email" });
   } catch (err) {
     console.error("FORGOT PASSWORD ERROR:", err);
-    res.status(500).json({ message: "Failed to send reset email" });
+    res.status(500).json({ message: "Failed to send reset link" });
   }
 };
 
-/* =====================
+/* =========================
    RESET PASSWORD
-===================== */
+========================= */
 exports.resetPassword = async (req, res) => {
   try {
-    const { token } = req.params;
-    const { password } = req.body;
-
     const hashedToken = crypto
       .createHash("sha256")
-      .update(token)
+      .update(req.params.token)
       .digest("hex");
 
     const user = await User.findOne({
       resetToken: hashedToken,
-      resetTokenExpire: { $gt: Date.now() },
+      resetTokenExpiry: { $gt: Date.now() },
     });
 
     if (!user) {
       return res.status(400).json({ message: "Invalid or expired token" });
     }
 
-    user.password = await bcrypt.hash(password, 10);
+    user.password = await bcrypt.hash(req.body.password, 10);
     user.resetToken = undefined;
-    user.resetTokenExpire = undefined;
-    user.isVerified = true;
-
+    user.resetTokenExpiry = undefined;
     await user.save();
 
     res.json({ message: "Password reset successful" });
