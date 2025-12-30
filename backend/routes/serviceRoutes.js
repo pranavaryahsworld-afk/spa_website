@@ -22,7 +22,7 @@ router.post("/", async (req, res) => {
     });
 
     res.status(201).json(service);
-  } catch (error) {
+  } catch {
     res.status(500).json({ message: "Failed to create service" });
   }
 });
@@ -34,8 +34,24 @@ router.get("/", async (req, res) => {
   try {
     const services = await Service.find().sort({ createdAt: -1 });
     res.json(services);
-  } catch (error) {
+  } catch {
     res.status(500).json({ message: "Failed to fetch services" });
+  }
+});
+
+/* ===========================
+   UPDATE SERVICE (ADMIN)
+=========================== */
+router.put("/:id", async (req, res) => {
+  try {
+    const updated = await Service.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
+    res.json(updated);
+  } catch {
+    res.status(500).json({ message: "Failed to update service" });
   }
 });
 
@@ -46,7 +62,7 @@ router.delete("/:id", async (req, res) => {
   try {
     await Service.findByIdAndDelete(req.params.id);
     res.json({ message: "Service deleted" });
-  } catch (error) {
+  } catch {
     res.status(500).json({ message: "Delete failed" });
   }
 });

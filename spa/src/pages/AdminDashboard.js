@@ -9,9 +9,22 @@ export default function AdminDashboard() {
 
   const [appointments, setAppointments] = useState([]);
   const [messages, setMessages] = useState([]);
+  const [services, setServices] = useState([]);
+
   const [activeTab, setActiveTab] = useState("appointments");
   const [replyText, setReplyText] = useState({});
   const [loading, setLoading] = useState(false);
+
+  /* =====================
+     NEW SERVICE FORM
+  ===================== */
+  const [serviceForm, setServiceForm] = useState({
+    title: "",
+    description: "",
+    price: "",
+    duration: "",
+    image: "",
+  });
 
   /* =====================
      FETCH DATA
@@ -34,10 +47,20 @@ export default function AdminDashboard() {
     }
   }, []);
 
+  const fetchServices = useCallback(async () => {
+    try {
+      const res = await API.get("/api/services");
+      setServices(res.data);
+    } catch {
+      toast.error("Failed to load services");
+    }
+  }, []);
+
   useEffect(() => {
     fetchAppointments();
     fetchMessages();
-  }, [fetchAppointments, fetchMessages]);
+    fetchServices();
+  }, [fetchAppointments, fetchMessages, fetchServices]);
 
   /* =====================
      APPOINTMENT ACTIONS
@@ -63,7 +86,6 @@ export default function AdminDashboard() {
 
   const deleteAppointment = async (id) => {
     if (!window.confirm("Delete this appointment?")) return;
-
     setLoading(true);
     try {
       await API.delete(`/api/appointments/${id}`);
@@ -110,12 +132,64 @@ export default function AdminDashboard() {
 
   const deleteMessage = async (id) => {
     if (!window.confirm("Delete this message?")) return;
-
     setLoading(true);
     try {
       await API.delete(`/api/contact/${id}`);
       toast.success("Message deleted");
       fetchMessages();
+    } catch {
+      toast.error("Delete failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* =====================
+     SERVICE ACTIONS
+  ===================== */
+  const handleServiceChange = (e) => {
+    setServiceForm({ ...serviceForm, [e.target.name]: e.target.value });
+  };
+
+  const addService = async (e) => {
+    e.preventDefault();
+
+    if (
+      !serviceForm.title ||
+      !serviceForm.description ||
+      !serviceForm.price ||
+      !serviceForm.duration
+    ) {
+      toast.error("All fields are required");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await API.post("/api/services", serviceForm);
+      toast.success("Service added successfully");
+      setServiceForm({
+        title: "",
+        description: "",
+        price: "",
+        duration: "",
+        image: "",
+      });
+      fetchServices();
+    } catch {
+      toast.error("Failed to add service");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteService = async (id) => {
+    if (!window.confirm("Delete this service?")) return;
+    setLoading(true);
+    try {
+      await API.delete(`/api/services/${id}`);
+      toast.success("Service deleted");
+      fetchServices();
     } catch {
       toast.error("Delete failed");
     } finally {
@@ -158,105 +232,74 @@ export default function AdminDashboard() {
         >
           Messages
         </button>
+        <button
+          className={activeTab === "services" ? "active" : ""}
+          onClick={() => setActiveTab("services")}
+        >
+          Services
+        </button>
       </div>
 
-      {/* ================= APPOINTMENTS ================= */}
-      {activeTab === "appointments" &&
-        appointments.map((a) => (
-          <div key={a._id} className="card">
-            <p><b>{a.name}</b> — {a.treatment}</p>
-            <p>{a.date} | {a.timeSlot}</p>
-            <p>📞 {a.phone || "N/A"}</p>
+      {/* ================= SERVICES ================= */}
+      {activeTab === "services" && (
+        <>
+          <form className="card" onSubmit={addService}>
+            <h3>Add New Service</h3>
 
-            <div className="actions">
-              <button
-                disabled={loading}
-                onClick={() => updateStatus(a._id, "approved")}
-              >
-                Approve
-              </button>
-
-              <button
-                disabled={loading}
-                onClick={() => updateStatus(a._id, "rejected")}
-              >
-                Reject
-              </button>
-
-              {a.phone && (
-                <>
-                  <a href={`tel:${a.phone}`} className="call-btn">Call</a>
-                  <a
-                    href={`https://wa.me/${a.phone}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="whatsapp-btn"
-                  >
-                    WhatsApp
-                  </a>
-                </>
-              )}
-
-              <button
-                className="danger"
-                onClick={() => deleteAppointment(a._id)}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        ))}
-
-      {/* ================= MESSAGES ================= */}
-      {activeTab === "messages" &&
-        messages.map((m) => (
-          <div key={m._id} className="card">
-            <p><b>{m.firstName} {m.lastName}</b></p>
-            <p>{m.message}</p>
-            <p>📧 {m.email}</p>
-            <p>📞 {m.phone || "N/A"}</p>
-
-            <textarea
-              placeholder="Reply..."
-              value={replyText[m._id] || ""}
-              onChange={(e) =>
-                setReplyText((prev) => ({
-                  ...prev,
-                  [m._id]: e.target.value,
-                }))
-              }
+            <input
+              name="title"
+              placeholder="Title"
+              value={serviceForm.title}
+              onChange={handleServiceChange}
+            />
+            <input
+              name="description"
+              placeholder="Description"
+              value={serviceForm.description}
+              onChange={handleServiceChange}
+            />
+            <input
+              name="price"
+              placeholder="Price"
+              value={serviceForm.price}
+              onChange={handleServiceChange}
+            />
+            <input
+              name="duration"
+              placeholder="Duration"
+              value={serviceForm.duration}
+              onChange={handleServiceChange}
+            />
+            <input
+              name="image"
+              placeholder="Image URL (optional)"
+              value={serviceForm.image}
+              onChange={handleServiceChange}
             />
 
-            <div className="actions">
-              <button onClick={() => sendReply(m._id)}>Reply (Email)</button>
+            <button type="submit" disabled={loading}>
+              Add Service
+            </button>
+          </form>
 
-              {m.phone && (
-                <>
-                  <a href={`tel:${m.phone}`} className="call-btn">Call</a>
-                  <a
-                    href={`https://wa.me/${m.phone}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="whatsapp-btn"
-                  >
-                    WhatsApp
-                  </a>
-                </>
-              )}
+          {services.map((s) => (
+            <div key={s._id} className="card">
+              <p><b>{s.title}</b></p>
+              <p>{s.description}</p>
+              <p>₹{s.price} | {s.duration}</p>
 
-              <button onClick={() => toggleRead(m._id, m.isRead)}>
-                {m.isRead ? "Unread" : "Read"}
-              </button>
-
-              <button
-                className="danger"
-                onClick={() => deleteMessage(m._id)}
-              >
-                Delete
-              </button>
+              <div className="actions">
+                <button
+                  className="danger"
+                  onClick={() => deleteService(s._id)}
+                >
+                  Delete
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </>
+      )}
     </div>
   );
 }
