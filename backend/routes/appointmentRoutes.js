@@ -1,22 +1,48 @@
 const express = require("express");
 const router = express.Router();
-const {
-  createAppointment,
-  getAllAppointments,
-  updateAppointmentStatus,
-  deleteAppointment,
-} = require("../controllers/appointmentController");
+const Appointment = require("../models/Appointment");
 
-// Create appointment
-router.post("/", createAppointment);
+/* =====================
+   GET ALL APPOINTMENTS (ADMIN)
+===================== */
+router.get("/", async (req, res) => {
+  try {
+    const appointments = await Appointment.find().sort({ createdAt: -1 });
+    res.json(appointments);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch appointments" });
+  }
+});
 
-// Admin: get all
-router.get("/", getAllAppointments);
+/* =====================
+   UPDATE STATUS (ADMIN)
+===================== */
+router.put("/:id/status", async (req, res) => {
+  try {
+    const { status } = req.body;
 
-// Admin: update status
-router.put("/:id/status", updateAppointmentStatus);
+    const appointment = await Appointment.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    );
 
-// Admin: delete
-router.delete("/:id", deleteAppointment);
+    res.json(appointment);
+  } catch (err) {
+    res.status(500).json({ message: "Status update failed" });
+  }
+});
+
+/* =====================
+   DELETE APPOINTMENT (ADMIN)
+===================== */
+router.delete("/:id", async (req, res) => {
+  try {
+    await Appointment.findByIdAndDelete(req.params.id);
+    res.json({ message: "Appointment deleted" });
+  } catch (err) {
+    res.status(500).json({ message: "Delete failed" });
+  }
+});
 
 module.exports = router;

@@ -1,7 +1,12 @@
 const express = require("express");
 const router = express.Router();
 const ContactMessage = require("../models/ContactMessage");
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
+
+/* =====================
+   RESEND CONFIG
+===================== */
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 /* =========================
    CREATE MESSAGE (USER)
@@ -10,7 +15,6 @@ router.post("/", async (req, res) => {
   try {
     const { firstName, lastName, email, phone, message } = req.body;
 
-    // 🔥 VALIDATION (FIX)
     if (!firstName || !lastName || !email || !phone || !message) {
       return res.status(400).json({
         message: "All fields are required",
@@ -21,8 +25,9 @@ router.post("/", async (req, res) => {
       firstName,
       lastName,
       email,
-      phone, // 🔥 FIXED
+      phone,
       message,
+      isRead: false,
     });
 
     res.status(201).json({
@@ -53,16 +58,19 @@ router.get("/", async (req, res) => {
 ========================= */
 router.put("/:id/read", async (req, res) => {
   try {
-    const message = await ContactMessage.findById(req.params.id);
+    const { isRead } = req.body;
+
+    const message = await ContactMessage.findByIdAndUpdate(
+      req.params.id,
+      { isRead },
+      { new: true }
+    );
 
     if (!message) {
       return res.status(404).json({ message: "Message not found" });
     }
 
-    message.isRead = req.body.isRead;
-    await message.save();
-
-    res.json({ success: true });
+    res.json({ success: true, data: message });
   } catch (err) {
     res.status(500).json({ message: "Failed to update read status" });
   }
@@ -81,13 +89,13 @@ router.delete("/:id", async (req, res) => {
 });
 
 /* =========================
-   SEND REPLY (EMAIL)
+   SEND REPLY (ADMIN)
 ========================= */
 router.post("/:id/reply", async (req, res) => {
   try {
     const { reply } = req.body;
 
-    if (!reply) {
+    if (!reply || !reply.trim()) {
       return res.status(400).json({ message: "Reply is required" });
     }
 
@@ -96,26 +104,24 @@ router.post("/:id/reply", async (req, res) => {
       return res.status(404).json({ message: "Message not found" });
     }
 
+    // send email via Resend
+    await resend.emails.send({
+      from: process.env.EMAIL_FROM,
+      to: message.email,
+      subject: "Reply from WellSpa",
+      html: `
+        <p>Hello ${message.firstName},</p>
+        <p>${reply}</p>
+        <br />
+        <p>Regards,<br/>WellSpa Team</p>
+      `,
+    });
+
     message.reply = reply;
     message.isRead = true;
     await message.save();
 
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-
-    await transporter.sendMail({
-      from: `"WellSpa" <${process.env.EMAIL_USER}>`,
-      to: message.email,
-      subject: "Reply from WellSpa",
-      text: reply,
-    });
-
-    res.json({ success: true, message: "Reply sent" });
+    res.json({ success: true, message: "Reply sent successfully" });
   } catch (err) {
     console.error("REPLY ERROR:", err);
     res.status(500).json({ message: "Failed to send reply" });
