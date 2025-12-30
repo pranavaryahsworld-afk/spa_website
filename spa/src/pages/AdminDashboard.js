@@ -42,24 +42,18 @@ export default function AdminDashboard() {
   /* =====================
      APPOINTMENT ACTIONS
   ===================== */
-  const updateStatus = async (id, status, phone) => {
+  const updateStatus = async (id, status) => {
     setLoading(true);
     try {
       await API.put(`/api/appointments/${id}/status`, { status });
-      toast.success(`Appointment ${status}`);
+
+      toast.success(
+        status === "approved"
+          ? "Appointment approved & email sent"
+          : "Appointment rejected & email sent"
+      );
+
       fetchAppointments();
-
-      if (phone) {
-        const msg =
-          status === "approved"
-            ? "Hello! Your appointment at WellSpa has been APPROVED 🌿✨ We look forward to welcoming you."
-            : "Hello! Unfortunately, your appointment at WellSpa has been REJECTED. Please contact us to reschedule.";
-
-        window.open(
-          `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`,
-          "_blank"
-        );
-      }
     } catch {
       toast.error("Status update failed");
     } finally {
@@ -69,6 +63,7 @@ export default function AdminDashboard() {
 
   const deleteAppointment = async (id) => {
     if (!window.confirm("Delete this appointment?")) return;
+
     setLoading(true);
     try {
       await API.delete(`/api/appointments/${id}`);
@@ -115,6 +110,7 @@ export default function AdminDashboard() {
 
   const deleteMessage = async (id) => {
     if (!window.confirm("Delete this message?")) return;
+
     setLoading(true);
     try {
       await API.delete(`/api/contact/${id}`);
@@ -175,14 +171,14 @@ export default function AdminDashboard() {
             <div className="actions">
               <button
                 disabled={loading}
-                onClick={() => updateStatus(a._id, "approved", a.phone)}
+                onClick={() => updateStatus(a._id, "approved")}
               >
                 Approve
               </button>
 
               <button
                 disabled={loading}
-                onClick={() => updateStatus(a._id, "rejected", a.phone)}
+                onClick={() => updateStatus(a._id, "rejected")}
               >
                 Reject
               </button>

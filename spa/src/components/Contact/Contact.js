@@ -21,8 +21,14 @@ export default function Contact() {
     e.preventDefault();
 
     try {
-      await axios.post(`${API_BASE_URL}/api/contact`, formData);
+      await axios.post(`${API_BASE_URL}/api/contact`, formData, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
       toast.success("Message sent successfully");
+
       setFormData({
         firstName: "",
         lastName: "",
@@ -30,8 +36,8 @@ export default function Contact() {
         phone: "",
         message: "",
       });
-    } catch {
-      toast.error("Failed to send message");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to send message");
     }
   };
 
@@ -40,7 +46,6 @@ export default function Contact() {
       <h2 className="contact-title">Contact Us</h2>
 
       <div className="contact-container">
-        {/* LEFT: FORM */}
         <form className="contact-form" onSubmit={handleSubmit}>
           <div className="row">
             <input
@@ -89,30 +94,17 @@ export default function Contact() {
           </button>
         </form>
 
-        {/* RIGHT: COMPANY INFO */}
         <div className="contact-info">
           <h3>WellSpa</h3>
           <p>Relax. Refresh. Renew.</p>
 
-          <div className="info-item">
-            📍 <span>Mumbai, Maharashtra, India</span>
-          </div>
-
-          <div className="info-item">
-            📞 <span>+91 83559 95023</span>
-          </div>
-
-          <div className="info-item">
-            ✉️ <span>pranavgaikar287@gmail.com</span>
-          </div>
-
-          <div className="info-item">
-            ⏰ <span>Mon – Sun: 10:00 AM – 9:00 PM</span>
-          </div>
+          <div className="info-item">📍 Mumbai, Maharashtra, India</div>
+          <div className="info-item">📞 +91 83559 95023</div>
+          <div className="info-item">✉️ pranavgaikar287@gmail.com</div>
+          <div className="info-item">⏰ Mon – Sun: 10:00 AM – 9:00 PM</div>
         </div>
       </div>
 
-      {/* MAP */}
       <div className="map-container">
         <iframe
           title="WellSpa Location"
