@@ -301,3 +301,25 @@ textarea {
   border-radius: 12px;
   margin-top: 10px;
 }
+/* ================= SERVICES ================= */
+.service-form input,
+.service-card input {
+  margin-bottom: 10px;
+}
+
+.service-card {
+  border-left: 5px solid #111;
+}
+
+.service-card h4 {
+  font-size: 18px;
+  margin-bottom: 6px;
+}
+
+.service-card p {
+  color: #555;
+}
+
+.service-card .actions {
+  margin-top: 12px;
+}
