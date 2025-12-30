@@ -3,9 +3,6 @@ const router = express.Router();
 const ContactMessage = require("../models/ContactMessage");
 const { Resend } = require("resend");
 
-/* =====================
-   RESEND CONFIG
-===================== */
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 /* =========================
@@ -33,8 +30,8 @@ router.post("/", async (req, res) => {
       message: "Message sent successfully",
       data: newMessage,
     });
-  } catch (err) {
-    console.error("CONTACT CREATE ERROR:", err);
+  } catch (error) {
+    console.error("CONTACT ERROR:", error);
     res.status(500).json({ message: "Failed to send message" });
   }
 });
@@ -52,7 +49,7 @@ router.get("/", async (req, res) => {
 });
 
 /* =========================
-   TOGGLE READ / UNREAD
+   TOGGLE READ
 ========================= */
 router.put("/:id/read", async (req, res) => {
   try {
@@ -70,19 +67,19 @@ router.put("/:id/read", async (req, res) => {
 
     res.json({ success: true });
   } catch {
-    res.status(500).json({ message: "Failed to update read status" });
+    res.status(500).json({ message: "Failed to update status" });
   }
 });
 
 /* =========================
-   DELETE MESSAGE (ADMIN)
+   DELETE MESSAGE
 ========================= */
 router.delete("/:id", async (req, res) => {
   try {
     await ContactMessage.findByIdAndDelete(req.params.id);
     res.json({ success: true });
   } catch {
-    res.status(500).json({ message: "Failed to delete message" });
+    res.status(500).json({ message: "Delete failed" });
   }
 });
 
@@ -109,7 +106,7 @@ router.post("/:id/reply", async (req, res) => {
       html: `
         <p>Hello ${message.firstName},</p>
         <p>${reply}</p>
-        <br />
+        <br/>
         <p>Regards,<br/>WellSpa Team</p>
       `,
     });
