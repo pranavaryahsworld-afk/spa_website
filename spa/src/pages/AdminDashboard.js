@@ -1,9 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { Toaster, toast } from "react-hot-toast";
 import "./AdminDashboard.css";
-import API_BASE_URL from "../utils/api";
+import API from "../utils/api"; // ✅ IMPORTANT
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -14,32 +13,26 @@ export default function AdminDashboard() {
   const [replyText, setReplyText] = useState({});
   const [loading, setLoading] = useState(false);
 
-  const token = localStorage.getItem("token");
-
   /* =====================
      FETCH DATA
   ===================== */
   const fetchAppointments = useCallback(async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/appointments`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await API.get("/api/appointments");
       setAppointments(res.data);
     } catch {
       toast.error("Failed to load appointments");
     }
-  }, [token]);
+  }, []);
 
   const fetchMessages = useCallback(async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/contact`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await API.get("/api/contact");
       setMessages(res.data);
     } catch {
       toast.error("Failed to load messages");
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     fetchAppointments();
@@ -52,16 +45,11 @@ export default function AdminDashboard() {
   const updateStatus = async (id, status, phone) => {
     setLoading(true);
     try {
-      await axios.put(
-        `${API_BASE_URL}/api/appointments/${id}/status`,
-        { status },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await API.put(`/api/appointments/${id}/status`, { status });
 
       toast.success(`Appointment ${status}`);
       fetchAppointments();
 
-      // WhatsApp auto-open
       if (phone) {
         const msg = `Hello, your appointment has been ${status}. Thank you for choosing WellSpa 🌿`;
         window.open(
@@ -81,9 +69,7 @@ export default function AdminDashboard() {
 
     setLoading(true);
     try {
-      await axios.delete(`${API_BASE_URL}/api/appointments/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await API.delete(`/api/appointments/${id}`);
       toast.success("Appointment deleted");
       fetchAppointments();
     } catch {
@@ -96,7 +82,7 @@ export default function AdminDashboard() {
   /* =====================
      MESSAGE ACTIONS
   ===================== */
-  const sendReply = async (id, email) => {
+  const sendReply = async (id) => {
     const reply = replyText[id];
     if (!reply || !reply.trim()) {
       toast.error("Reply cannot be empty");
@@ -105,11 +91,7 @@ export default function AdminDashboard() {
 
     setLoading(true);
     try {
-      await axios.post(
-        `${API_BASE_URL}/api/contact/${id}/reply`,
-        { reply },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await API.post(`/api/contact/${id}/reply`, { reply });
       toast.success("Reply sent via email");
       setReplyText((prev) => ({ ...prev, [id]: "" }));
       fetchMessages();
@@ -122,11 +104,7 @@ export default function AdminDashboard() {
 
   const toggleRead = async (id, isRead) => {
     try {
-      await axios.put(
-        `${API_BASE_URL}/api/contact/${id}/read`,
-        { isRead: !isRead },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await API.put(`/api/contact/${id}/read`, { isRead: !isRead });
       fetchMessages();
     } catch {
       toast.error("Failed to update read status");
@@ -138,9 +116,7 @@ export default function AdminDashboard() {
 
     setLoading(true);
     try {
-      await axios.delete(`${API_BASE_URL}/api/contact/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await API.delete(`/api/contact/${id}`);
       toast.success("Message deleted");
       fetchMessages();
     } catch {
@@ -187,62 +163,52 @@ export default function AdminDashboard() {
         </button>
       </div>
 
-     {/* ================= APPOINTMENTS ================= */}
-{activeTab === "appointments" &&
-  appointments.map((a) => (
-    <div key={a._id} className="card">
-      <p><b>{a.name}</b> — {a.treatment}</p>
-      <p>{a.date} | {a.timeSlot}</p>
+      {/* ================= APPOINTMENTS ================= */}
+      {activeTab === "appointments" &&
+        appointments.map((a) => (
+          <div key={a._id} className="card">
+            <p><b>{a.name}</b> — {a.treatment}</p>
+            <p>{a.date} | {a.timeSlot}</p>
+            <p>📞 {a.phone || "N/A"}</p>
 
-      {a.phone ? (
-        <p>📞 {a.phone}</p>
-      ) : (
-        <p style={{ color: "red" }}>No phone number</p>
-      )}
+            <div className="actions">
+              <button
+                disabled={loading}
+                onClick={() => updateStatus(a._id, "approved", a.phone)}
+              >
+                Approve
+              </button>
 
-      <div className="actions">
-        <button
-          disabled={loading}
-          onClick={() => updateStatus(a._id, "approved")}
-        >
-          Approve
-        </button>
+              <button
+                disabled={loading}
+                onClick={() => updateStatus(a._id, "rejected", a.phone)}
+              >
+                Reject
+              </button>
 
-        <button
-          disabled={loading}
-          onClick={() => updateStatus(a._id, "rejected")}
-        >
-          Reject
-        </button>
+              {a.phone && (
+                <>
+                  <a href={`tel:${a.phone}`} className="call-btn">Call</a>
+                  <a
+                    href={`https://wa.me/${a.phone}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="whatsapp-btn"
+                  >
+                    WhatsApp
+                  </a>
+                </>
+              )}
 
-        {a.phone && (
-          <>
-            <a href={`tel:${a.phone}`} className="call-btn">
-              Call
-            </a>
-
-            <a
-              href={`https://wa.me/${a.phone}?text=${encodeURIComponent(
-                "Hello, your appointment has been updated. Thank you for choosing WellSpa 🌿"
-              )}`}
-              target="_blank"
-              rel="noreferrer"
-              className="whatsapp-btn"
-            >
-              WhatsApp
-            </a>
-          </>
-        )}
-
-        <button
-          className="danger"
-          onClick={() => deleteAppointment(a._id)}
-        >
-          Delete
-        </button>
-      </div>
-    </div>
-  ))}
+              <button
+                className="danger"
+                onClick={() => deleteAppointment(a._id)}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        ))}
 
       {/* ================= MESSAGES ================= */}
       {activeTab === "messages" &&
@@ -251,7 +217,7 @@ export default function AdminDashboard() {
             <p><b>{m.firstName} {m.lastName}</b></p>
             <p>{m.message}</p>
             <p>📧 {m.email}</p>
-            <p>📞 {m.phone}</p>
+            <p>📞 {m.phone || "N/A"}</p>
 
             <textarea
               placeholder="Reply..."
@@ -265,22 +231,21 @@ export default function AdminDashboard() {
             />
 
             <div className="actions">
-              <button onClick={() => sendReply(m._id, m.email)}>
-                Reply (Email)
-              </button>
+              <button onClick={() => sendReply(m._id)}>Reply (Email)</button>
 
-              <a href={`tel:${m.phone}`} className="call-btn">
-                Call
-              </a>
-
-              <a
-                href={`https://wa.me/${m.phone}`}
-                target="_blank"
-                rel="noreferrer"
-                className="whatsapp-btn"
-              >
-                WhatsApp
-              </a>
+              {m.phone && (
+                <>
+                  <a href={`tel:${m.phone}`} className="call-btn">Call</a>
+                  <a
+                    href={`https://wa.me/${m.phone}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="whatsapp-btn"
+                  >
+                    WhatsApp
+                  </a>
+                </>
+              )}
 
               <button onClick={() => toggleRead(m._id, m.isRead)}>
                 {m.isRead ? "Unread" : "Read"}
