@@ -12,6 +12,7 @@ export default function AdminDashboard() {
   const [messages, setMessages] = useState([]);
   const [activeTab, setActiveTab] = useState("appointments");
   const [replyText, setReplyText] = useState({});
+  const [loading, setLoading] = useState(false);
 
   const token = localStorage.getItem("token");
 
@@ -48,21 +49,37 @@ export default function AdminDashboard() {
   /* =====================
      APPOINTMENT ACTIONS
   ===================== */
-  const updateStatus = async (id, status) => {
+  const updateStatus = async (id, status, phone) => {
+    setLoading(true);
     try {
       await axios.put(
         `${API_BASE_URL}/api/appointments/${id}/status`,
         { status },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
       toast.success(`Appointment ${status}`);
       fetchAppointments();
+
+      // WhatsApp auto-open
+      if (phone) {
+        const msg = `Hello, your appointment has been ${status}. Thank you for choosing WellSpa 🌿`;
+        window.open(
+          `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`,
+          "_blank"
+        );
+      }
     } catch {
       toast.error("Status update failed");
+    } finally {
+      setLoading(false);
     }
   };
 
   const deleteAppointment = async (id) => {
+    if (!window.confirm("Delete this appointment?")) return;
+
+    setLoading(true);
     try {
       await axios.delete(`${API_BASE_URL}/api/appointments/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -71,30 +88,35 @@ export default function AdminDashboard() {
       fetchAppointments();
     } catch {
       toast.error("Delete failed");
+    } finally {
+      setLoading(false);
     }
   };
 
   /* =====================
      MESSAGE ACTIONS
   ===================== */
-  const sendReply = async (id) => {
+  const sendReply = async (id, email) => {
     const reply = replyText[id];
-    if (!reply?.trim()) {
+    if (!reply || !reply.trim()) {
       toast.error("Reply cannot be empty");
       return;
     }
 
+    setLoading(true);
     try {
       await axios.post(
         `${API_BASE_URL}/api/contact/${id}/reply`,
         { reply },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      toast.success("Reply sent");
+      toast.success("Reply sent via email");
       setReplyText((prev) => ({ ...prev, [id]: "" }));
       fetchMessages();
     } catch {
       toast.error("Failed to send reply");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -112,6 +134,9 @@ export default function AdminDashboard() {
   };
 
   const deleteMessage = async (id) => {
+    if (!window.confirm("Delete this message?")) return;
+
+    setLoading(true);
     try {
       await axios.delete(`${API_BASE_URL}/api/contact/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -120,6 +145,8 @@ export default function AdminDashboard() {
       fetchMessages();
     } catch {
       toast.error("Delete failed");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -160,42 +187,97 @@ export default function AdminDashboard() {
         </button>
       </div>
 
+      {/* ================= APPOINTMENTS ================= */}
       {activeTab === "appointments" &&
         appointments.map((a) => (
           <div key={a._id} className="card">
             <p><b>{a.name}</b> — {a.treatment}</p>
             <p>{a.date} | {a.timeSlot}</p>
+            <p>📞 {a.phone}</p>
 
             <div className="actions">
-              <button onClick={() => updateStatus(a._id, "approved")}>Approve</button>
-              <button onClick={() => updateStatus(a._id, "rejected")}>Reject</button>
-              <button className="danger" onClick={() => deleteAppointment(a._id)}>
+              <button
+                disabled={loading}
+                onClick={() => updateStatus(a._id, "approved", a.phone)}
+              >
+                Approve
+              </button>
+              <button
+                disabled={loading}
+                onClick={() => updateStatus(a._id, "rejected", a.phone)}
+              >
+                Reject
+              </button>
+
+              <a href={`tel:${a.phone}`} className="call-btn">
+                Call
+              </a>
+
+              <a
+                href={`https://wa.me/${a.phone}`}
+                target="_blank"
+                rel="noreferrer"
+                className="whatsapp-btn"
+              >
+                WhatsApp
+              </a>
+
+              <button
+                className="danger"
+                onClick={() => deleteAppointment(a._id)}
+              >
                 Delete
               </button>
             </div>
           </div>
         ))}
 
+      {/* ================= MESSAGES ================= */}
       {activeTab === "messages" &&
         messages.map((m) => (
           <div key={m._id} className="card">
             <p><b>{m.firstName} {m.lastName}</b></p>
             <p>{m.message}</p>
+            <p>📧 {m.email}</p>
+            <p>📞 {m.phone}</p>
 
             <textarea
               placeholder="Reply..."
               value={replyText[m._id] || ""}
               onChange={(e) =>
-                setReplyText((prev) => ({ ...prev, [m._id]: e.target.value }))
+                setReplyText((prev) => ({
+                  ...prev,
+                  [m._id]: e.target.value,
+                }))
               }
             />
 
             <div className="actions">
-              <button onClick={() => sendReply(m._id)}>Reply</button>
+              <button onClick={() => sendReply(m._id, m.email)}>
+                Reply (Email)
+              </button>
+
+              <a href={`tel:${m.phone}`} className="call-btn">
+                Call
+              </a>
+
+              <a
+                href={`https://wa.me/${m.phone}`}
+                target="_blank"
+                rel="noreferrer"
+                className="whatsapp-btn"
+              >
+                WhatsApp
+              </a>
+
               <button onClick={() => toggleRead(m._id, m.isRead)}>
                 {m.isRead ? "Unread" : "Read"}
               </button>
-              <button className="danger" onClick={() => deleteMessage(m._id)}>
+
+              <button
+                className="danger"
+                onClick={() => deleteMessage(m._id)}
+              >
                 Delete
               </button>
             </div>
