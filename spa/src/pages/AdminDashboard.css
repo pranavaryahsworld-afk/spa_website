@@ -302,24 +302,73 @@ textarea {
   margin-top: 10px;
 }
 /* ================= SERVICES ================= */
-.service-form input,
-.service-card input {
-  margin-bottom: 10px;
+
+/* remove hard borders */
+.service-card {
+  border: none;
+  border-left: none;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 22px;
+  margin-bottom: 20px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
-.service-card {
-  border-left: 5px solid #111;
+.service-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
 }
 
 .service-card h4 {
   font-size: 18px;
+  font-weight: 600;
   margin-bottom: 6px;
+  color: #111;
 }
 
 .service-card p {
   color: #555;
+  font-size: 14px;
 }
 
+/* price + duration */
+.service-meta {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111;
+}
+
+/* actions */
 .service-card .actions {
-  margin-top: 12px;
+  margin-top: 14px;
+  display: flex;
+  gap: 12px;
+}
+
+/* buttons */
+.service-card .actions button {
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.service-card .actions .edit-btn {
+  background: #eee;
+}
+
+.service-card .actions .edit-btn:hover {
+  background: #ddd;
+}
+
+.service-card .actions .delete-btn {
+  background: #e53935;
+  color: white;
+}
+
+.service-card .actions .delete-btn:hover {
+  background: #c62828;
 }
