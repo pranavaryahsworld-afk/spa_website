@@ -30,10 +30,7 @@ export default function Login() {
       localStorage.setItem("name", res.data.name);
 
       toast.success("Login successful");
-
-      setTimeout(() => {
-        navigate("/#appointment");
-      }, 300);
+      navigate("/");
     } catch (err) {
       toast.error(err.response?.data?.message || "Login failed");
     } finally {
@@ -47,22 +44,8 @@ export default function Login() {
         <h2>Login</h2>
 
         <form onSubmit={handleLogin}>
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-
+          <input type="email" placeholder="Email" onChange={(e) => setEmail(e.target.value)} required />
+          <input type="password" placeholder="Password" onChange={(e) => setPassword(e.target.value)} required />
           <button type="submit" disabled={loading}>
             {loading ? "Logging in..." : "Login"}
           </button>

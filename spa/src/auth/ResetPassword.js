@@ -1,5 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { toast } from "react-hot-toast";
+import "./Auth.css";
 import API from "../utils/api";
 
 export default function ResetPassword() {
@@ -9,14 +11,13 @@ export default function ResetPassword() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
-      const res = await API.post(`/api/auth/reset-password/${token}`, {
-        password,
-      });
-      alert(res.data.message);
+      await API.post(`/api/auth/reset-password/${token}`, { password });
+      toast.success("Password reset successful");
       navigate("/login");
     } catch (err) {
-      alert(err.response?.data?.message || "Error");
+      toast.error(err.response?.data?.message || "Invalid or expired link");
     }
   };
 

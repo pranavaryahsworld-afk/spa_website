@@ -7,25 +7,15 @@ import API from "../utils/api";
 export default function Signup() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    otp: "",
-  });
+  const [form, setForm] = useState({ name: "", email: "", password: "", otp: "" });
 
-  const handleChange = (e) => {
+  const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
-  };
 
   const sendOTP = async (e) => {
     e.preventDefault();
     try {
-      await API.post("/api/auth/signup-otp", {
-        name: form.name,
-        email: form.email,
-        password: form.password,
-      });
+      await API.post("/api/auth/signup-otp", form);
       toast.success("OTP sent to email");
       setStep(2);
     } catch (err) {
@@ -55,25 +45,14 @@ export default function Signup() {
         <form onSubmit={sendOTP}>
           <input name="name" placeholder="Name" onChange={handleChange} required />
           <input name="email" placeholder="Email" onChange={handleChange} required />
-          <input
-            name="password"
-            type="password"
-            placeholder="Password"
-            onChange={handleChange}
-            required
-          />
+          <input name="password" type="password" placeholder="Password" onChange={handleChange} required />
           <button>Send OTP</button>
         </form>
       )}
 
       {step === 2 && (
         <form onSubmit={verifyOTP}>
-          <input
-            name="otp"
-            placeholder="Enter OTP"
-            onChange={handleChange}
-            required
-          />
+          <input name="otp" placeholder="Enter OTP" onChange={handleChange} required />
           <button>Verify OTP</button>
         </form>
       )}

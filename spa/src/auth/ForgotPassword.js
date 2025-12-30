@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { toast } from "react-hot-toast";
+import "./Auth.css";
 import API from "../utils/api";
 
 export default function ForgotPassword() {
@@ -7,10 +9,10 @@ export default function ForgotPassword() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await API.post("/api/auth/forgot-password", { email });
-      alert(res.data.message);
+      await API.post("/api/auth/forgot-password", { email });
+      toast.success("Reset link sent to email");
     } catch (err) {
-      alert(err.response?.data?.message || "Error");
+      toast.error(err.response?.data?.message || "Error");
     }
   };
 
