@@ -8,41 +8,49 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState("appointments");
+  const [loading, setLoading] = useState(false);
 
   const [appointments, setAppointments] = useState([]);
   const [messages, setMessages] = useState([]);
   const [services, setServices] = useState([]);
 
   const [replyText, setReplyText] = useState({});
-  const [loading, setLoading] = useState(false);
 
-  /* =====================
-     SERVICE FORM STATE
-  ===================== */
-  const [serviceForm, setServiceForm] = useState({
+  const [newService, setNewService] = useState({
     title: "",
     description: "",
     price: "",
     duration: "",
-    image: "",
+    imageUrl: "",
+    imageFile: null,
   });
 
-  /* =====================
-     FETCH DATA
-  ===================== */
+  /* ================= FETCH ================= */
   const fetchAppointments = useCallback(async () => {
-    const res = await API.get("/api/appointments");
-    setAppointments(res.data);
+    try {
+      const res = await API.get("/api/appointments");
+      setAppointments(res.data);
+    } catch {
+      toast.error("Failed to load appointments");
+    }
   }, []);
 
   const fetchMessages = useCallback(async () => {
-    const res = await API.get("/api/contact");
-    setMessages(res.data);
+    try {
+      const res = await API.get("/api/contact");
+      setMessages(res.data);
+    } catch {
+      toast.error("Failed to load messages");
+    }
   }, []);
 
   const fetchServices = useCallback(async () => {
-    const res = await API.get("/api/services");
-    setServices(res.data);
+    try {
+      const res = await API.get("/api/services");
+      setServices(res.data);
+    } catch {
+      toast.error("Failed to load services");
+    }
   }, []);
 
   useEffect(() => {
@@ -51,14 +59,16 @@ export default function AdminDashboard() {
     fetchServices();
   }, [fetchAppointments, fetchMessages, fetchServices]);
 
-  /* =====================
-     APPOINTMENT ACTIONS
-  ===================== */
+  /* ================= APPOINTMENTS ================= */
   const updateStatus = async (id, status) => {
     setLoading(true);
     try {
       await API.put(`/api/appointments/${id}/status`, { status });
-      toast.success(`Appointment ${status} & email sent`);
+      toast.success(
+        status === "approved"
+          ? "Appointment approved & email sent"
+          : "Appointment rejected & email sent"
+      );
       fetchAppointments();
     } catch {
       toast.error("Status update failed");
@@ -67,72 +77,111 @@ export default function AdminDashboard() {
     }
   };
 
-  /* =====================
-     MESSAGE ACTIONS
-  ===================== */
+  const deleteAppointment = async (id) => {
+    if (!window.confirm("Delete this appointment?")) return;
+    setLoading(true);
+    try {
+      await API.delete(`/api/appointments/${id}`);
+      toast.success("Appointment deleted");
+      fetchAppointments();
+    } catch {
+      toast.error("Delete failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* ================= MESSAGES ================= */
   const sendReply = async (id) => {
     const reply = replyText[id];
-    if (!reply) return toast.error("Reply required");
-
-    await API.post(`/api/contact/${id}/reply`, { reply });
-    toast.success("Reply sent");
-    setReplyText((p) => ({ ...p, [id]: "" }));
-    fetchMessages();
-  };
-
-  /* =====================
-     SERVICE ACTIONS
-  ===================== */
-  const handleServiceChange = (e) => {
-    setServiceForm({ ...serviceForm, [e.target.name]: e.target.value });
-  };
-
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setServiceForm((prev) => ({ ...prev, image: reader.result }));
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const addService = async () => {
-    const { title, description, price, duration } = serviceForm;
-    if (!title || !description || !price || !duration) {
-      return toast.error("All fields required");
+    if (!reply?.trim()) {
+      toast.error("Reply cannot be empty");
+      return;
     }
 
-    await API.post("/api/services", serviceForm);
-    toast.success("Service added");
-    setServiceForm({
-      title: "",
-      description: "",
-      price: "",
-      duration: "",
-      image: "",
-    });
-    fetchServices();
+    setLoading(true);
+    try {
+      await API.post(`/api/contact/${id}/reply`, { reply });
+      toast.success("Reply sent via email");
+      setReplyText((p) => ({ ...p, [id]: "" }));
+      fetchMessages();
+    } catch {
+      toast.error("Failed to send reply");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleRead = async (id, isRead) => {
+    try {
+      await API.put(`/api/contact/${id}/read`, { isRead: !isRead });
+      fetchMessages();
+    } catch {
+      toast.error("Failed to update status");
+    }
+  };
+
+  const deleteMessage = async (id) => {
+    if (!window.confirm("Delete this message?")) return;
+    try {
+      await API.delete(`/api/contact/${id}`);
+      toast.success("Message deleted");
+      fetchMessages();
+    } catch {
+      toast.error("Delete failed");
+    }
+  };
+
+  /* ================= SERVICES ================= */
+  const addService = async () => {
+    if (!newService.title || !newService.price || !newService.duration) {
+      toast.error("Fill required fields");
+      return;
+    }
+
+    const payload = {
+      title: newService.title,
+      description: newService.description,
+      price: newService.price,
+      duration: newService.duration,
+      image: newService.imageUrl,
+    };
+
+    try {
+      await API.post("/api/services", payload);
+      toast.success("Service added");
+      setNewService({
+        title: "",
+        description: "",
+        price: "",
+        duration: "",
+        imageUrl: "",
+        imageFile: null,
+      });
+      fetchServices();
+    } catch {
+      toast.error("Failed to add service");
+    }
   };
 
   const deleteService = async (id) => {
-    await API.delete(`/api/services/${id}`);
-    toast.success("Service deleted");
-    fetchServices();
+    if (!window.confirm("Delete this service?")) return;
+    try {
+      await API.delete(`/api/services/${id}`);
+      toast.success("Service deleted");
+      fetchServices();
+    } catch {
+      toast.error("Delete failed");
+    }
   };
 
-  /* =====================
-     LOGOUT
-  ===================== */
+  /* ================= LOGOUT ================= */
   const logout = () => {
     localStorage.clear();
     navigate("/login");
   };
 
-  /* =====================
-     UI
-  ===================== */
+  /* ================= UI ================= */
   return (
     <div className="admin-dashboard">
       <Toaster position="top-right" />
@@ -143,9 +192,9 @@ export default function AdminDashboard() {
       </div>
 
       <div className="admin-tabs">
-        <button onClick={() => setActiveTab("appointments")} className={activeTab==="appointments"?"active":""}>Appointments</button>
-        <button onClick={() => setActiveTab("messages")} className={activeTab==="messages"?"active":""}>Messages</button>
-        <button onClick={() => setActiveTab("services")} className={activeTab==="services"?"active":""}>Services</button>
+        <button className={activeTab === "appointments" ? "active" : ""} onClick={() => setActiveTab("appointments")}>Appointments</button>
+        <button className={activeTab === "messages" ? "active" : ""} onClick={() => setActiveTab("messages")}>Messages</button>
+        <button className={activeTab === "services" ? "active" : ""} onClick={() => setActiveTab("services")}>Services</button>
       </div>
 
       {/* ================= APPOINTMENTS ================= */}
@@ -159,9 +208,9 @@ export default function AdminDashboard() {
             <div className="actions">
               <button onClick={() => updateStatus(a._id, "approved")}>Approve</button>
               <button onClick={() => updateStatus(a._id, "rejected")}>Reject</button>
-
               <a href={`tel:${a.phone}`} className="call-btn">Call</a>
               <a href={`https://wa.me/${a.phone}`} target="_blank" rel="noreferrer" className="whatsapp-btn">WhatsApp</a>
+              <button className="danger" onClick={() => deleteAppointment(a._id)}>Delete</button>
             </div>
           </div>
         ))}
@@ -172,17 +221,21 @@ export default function AdminDashboard() {
           <div key={m._id} className="card">
             <p><b>{m.firstName} {m.lastName}</b></p>
             <p>{m.message}</p>
+            <p>📧 {m.email}</p>
+            <p>📞 {m.phone}</p>
 
             <textarea
+              placeholder="Reply..."
               value={replyText[m._id] || ""}
               onChange={(e) => setReplyText({ ...replyText, [m._id]: e.target.value })}
-              placeholder="Reply..."
             />
 
             <div className="actions">
-              <button onClick={() => sendReply(m._id)}>Reply</button>
+              <button onClick={() => sendReply(m._id)}>Reply (Email)</button>
               <a href={`tel:${m.phone}`} className="call-btn">Call</a>
-              <a href={`https://wa.me/${m.phone}`} className="whatsapp-btn">WhatsApp</a>
+              <a href={`https://wa.me/${m.phone}`} target="_blank" rel="noreferrer" className="whatsapp-btn">WhatsApp</a>
+              <button onClick={() => toggleRead(m._id, m.isRead)}>{m.isRead ? "Unread" : "Read"}</button>
+              <button className="danger" onClick={() => deleteMessage(m._id)}>Delete</button>
             </div>
           </div>
         ))}
@@ -193,13 +246,12 @@ export default function AdminDashboard() {
           <div className="card">
             <h3>Add New Service</h3>
 
-            <input name="title" placeholder="Title" value={serviceForm.title} onChange={handleServiceChange} />
-            <input name="description" placeholder="Description" value={serviceForm.description} onChange={handleServiceChange} />
-            <input name="price" placeholder="Price" value={serviceForm.price} onChange={handleServiceChange} />
-            <input name="duration" placeholder="Duration" value={serviceForm.duration} onChange={handleServiceChange} />
+            <input placeholder="Title" value={newService.title} onChange={(e) => setNewService({ ...newService, title: e.target.value })} />
+            <input placeholder="Description" value={newService.description} onChange={(e) => setNewService({ ...newService, description: e.target.value })} />
+            <input placeholder="Price" value={newService.price} onChange={(e) => setNewService({ ...newService, price: e.target.value })} />
+            <input placeholder="Duration" value={newService.duration} onChange={(e) => setNewService({ ...newService, duration: e.target.value })} />
 
-            <input placeholder="Image URL" name="image" value={serviceForm.image} onChange={handleServiceChange} />
-            <input type="file" accept="image/*" onChange={handleFileUpload} />
+            <input placeholder="Image URL (optional)" value={newService.imageUrl} onChange={(e) => setNewService({ ...newService, imageUrl: e.target.value })} />
 
             <button onClick={addService}>Add Service</button>
           </div>
