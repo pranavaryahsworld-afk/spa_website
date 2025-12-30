@@ -1,8 +1,13 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 const User = require("../models/User");
+
+/* =====================
+   RESEND CONFIG
+===================== */
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 /* =====================
    SEND OTP (SIGNUP)
@@ -16,7 +21,6 @@ exports.sendSignupOTP = async (req, res) => {
     }
 
     const existingUser = await User.findOne({ email });
-
     if (existingUser && existingUser.isVerified) {
       return res.status(400).json({ message: "User already exists" });
     }
@@ -38,19 +42,16 @@ exports.sendSignupOTP = async (req, res) => {
       { upsert: true }
     );
 
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-
-    await transporter.sendMail({
-      from: `"WellSpa" <${process.env.EMAIL_USER}>`,
+    await resend.emails.send({
+      from: process.env.EMAIL_FROM,
       to: email,
       subject: "Your WellSpa OTP",
-      text: `Your OTP is ${otp}. It is valid for 5 minutes.`,
+      html: `
+        <h3>WellSpa OTP Verification</h3>
+        <p>Your OTP is:</p>
+        <h2>${otp}</h2>
+        <p>This OTP is valid for 5 minutes.</p>
+      `,
     });
 
     res.json({ success: true, message: "OTP sent to email" });
@@ -69,11 +70,7 @@ exports.verifySignupOTP = async (req, res) => {
 
     const user = await User.findOne({ email });
 
-    if (
-      !user ||
-      user.otp !== otp ||
-      user.otpExpires < Date.now()
-    ) {
+    if (!user || user.otp !== otp || user.otpExpires < Date.now()) {
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
@@ -84,6 +81,7 @@ exports.verifySignupOTP = async (req, res) => {
 
     res.json({ success: true, message: "Signup verified successfully" });
   } catch (err) {
+    console.error("OTP VERIFY ERROR:", err);
     res.status(500).json({ message: "OTP verification failed" });
   }
 };
@@ -105,12 +103,10 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // ✅ OTP CHECK (ONLY block if explicitly false)
-   // 🚨 OTP CHECK ONLY FOR NORMAL USERS
-if (user.role === "user" && !user.isVerified) {
-  return res.status(403).json({ message: "Please verify your account" });
-}
-
+    // 🚨 OTP CHECK ONLY FOR NORMAL USERS
+    if (user.role === "user" && !user.isVerified) {
+      return res.status(403).json({ message: "Please verify your account" });
+    }
 
     const token = jwt.sign(
       { id: user._id, role: user.role },
@@ -128,7 +124,6 @@ if (user.role === "user" && !user.isVerified) {
     res.status(500).json({ message: "Login failed" });
   }
 };
-
 
 /* =====================
    FORGOT PASSWORD
@@ -152,23 +147,16 @@ exports.forgotPassword = async (req, res) => {
     user.resetTokenExpire = Date.now() + 15 * 60 * 1000;
     await user.save();
 
-const resetLink = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+    const resetLink = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
 
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-
-    await transporter.sendMail({
-      from: `"WellSpa" <${process.env.EMAIL_USER}>`,
+    await resend.emails.send({
+      from: process.env.EMAIL_FROM,
       to: user.email,
-      subject: "Password Reset",
+      subject: "WellSpa Password Reset",
       html: `
+        <h3>Password Reset</h3>
         <p>Click the link below to reset your password:</p>
-        <a href="${resetLink}">${resetLink}</a>
+        <a href="${resetLink}">Reset Password</a>
         <p>This link expires in 15 minutes.</p>
       `,
     });
@@ -198,9 +186,10 @@ exports.resetPassword = async (req, res) => {
       resetTokenExpire: { $gt: Date.now() },
     });
 
-   if (!user || (user.isVerified === false)) {
-  return res.status(401).json({ message: "Invalid credentials" });
-}
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired token" });
+    }
+
     user.password = await bcrypt.hash(password, 10);
     user.resetToken = undefined;
     user.resetTokenExpire = undefined;
@@ -209,7 +198,8 @@ exports.resetPassword = async (req, res) => {
     await user.save();
 
     res.json({ message: "Password reset successful" });
-  } catch {
+  } catch (err) {
+    console.error("RESET PASSWORD ERROR:", err);
     res.status(500).json({ message: "Password reset failed" });
   }
 };
