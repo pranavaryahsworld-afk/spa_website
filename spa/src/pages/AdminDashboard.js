@@ -187,50 +187,62 @@ export default function AdminDashboard() {
         </button>
       </div>
 
-      {/* ================= APPOINTMENTS ================= */}
-      {activeTab === "appointments" &&
-        appointments.map((a) => (
-          <div key={a._id} className="card">
-            <p><b>{a.name}</b> — {a.treatment}</p>
-            <p>{a.date} | {a.timeSlot}</p>
-            <p>📞 {a.phone}</p>
+     {/* ================= APPOINTMENTS ================= */}
+{activeTab === "appointments" &&
+  appointments.map((a) => (
+    <div key={a._id} className="card">
+      <p><b>{a.name}</b> — {a.treatment}</p>
+      <p>{a.date} | {a.timeSlot}</p>
 
-            <div className="actions">
-              <button
-                disabled={loading}
-                onClick={() => updateStatus(a._id, "approved", a.phone)}
-              >
-                Approve
-              </button>
-              <button
-                disabled={loading}
-                onClick={() => updateStatus(a._id, "rejected", a.phone)}
-              >
-                Reject
-              </button>
+      {a.phone ? (
+        <p>📞 {a.phone}</p>
+      ) : (
+        <p style={{ color: "red" }}>No phone number</p>
+      )}
 
-              <a href={`tel:${a.phone}`} className="call-btn">
-                Call
-              </a>
+      <div className="actions">
+        <button
+          disabled={loading}
+          onClick={() => updateStatus(a._id, "approved")}
+        >
+          Approve
+        </button>
 
-              <a
-                href={`https://wa.me/${a.phone}`}
-                target="_blank"
-                rel="noreferrer"
-                className="whatsapp-btn"
-              >
-                WhatsApp
-              </a>
+        <button
+          disabled={loading}
+          onClick={() => updateStatus(a._id, "rejected")}
+        >
+          Reject
+        </button>
 
-              <button
-                className="danger"
-                onClick={() => deleteAppointment(a._id)}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        ))}
+        {a.phone && (
+          <>
+            <a href={`tel:${a.phone}`} className="call-btn">
+              Call
+            </a>
+
+            <a
+              href={`https://wa.me/${a.phone}?text=${encodeURIComponent(
+                "Hello, your appointment has been updated. Thank you for choosing WellSpa 🌿"
+              )}`}
+              target="_blank"
+              rel="noreferrer"
+              className="whatsapp-btn"
+            >
+              WhatsApp
+            </a>
+          </>
+        )}
+
+        <button
+          className="danger"
+          onClick={() => deleteAppointment(a._id)}
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  ))}
 
       {/* ================= MESSAGES ================= */}
       {activeTab === "messages" &&

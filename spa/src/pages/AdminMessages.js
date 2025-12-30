@@ -11,6 +11,9 @@ export default function AdminMessages() {
 
   const token = localStorage.getItem("token");
 
+  /* =====================
+     FETCH MESSAGES
+  ===================== */
   const fetchMessages = async () => {
     try {
       const res = await axios.get(`${API_BASE_URL}/api/contact`, {
@@ -26,8 +29,12 @@ export default function AdminMessages() {
     fetchMessages();
   }, []);
 
+  /* =====================
+     SEND REPLY
+  ===================== */
   const sendReply = async (id) => {
     const reply = replyText[id];
+
     if (!reply || !reply.trim()) {
       toast.error("Reply cannot be empty");
       return;
@@ -40,7 +47,8 @@ export default function AdminMessages() {
         { reply },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      toast.success("Reply sent");
+
+      toast.success("Reply sent via email");
       setReplyText((prev) => ({ ...prev, [id]: "" }));
       fetchMessages();
     } catch {
@@ -50,15 +58,59 @@ export default function AdminMessages() {
     }
   };
 
+  /* =====================
+     HELPERS
+  ===================== */
+  const openWhatsApp = (phone) => {
+    if (!phone) {
+      toast.error("Phone number not available");
+      return;
+    }
+
+    const msg =
+      "Hello! We have replied to your message. Thank you for contacting WellSpa 🌿";
+
+    window.open(
+      `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`,
+      "_blank"
+    );
+  };
+
+  const callUser = (phone) => {
+    if (!phone) {
+      toast.error("Phone number not available");
+      return;
+    }
+
+    window.location.href = `tel:${phone}`;
+  };
+
+  /* =====================
+     UI
+  ===================== */
   return (
     <div className="admin-dashboard">
       <Toaster position="top-right" />
       <h2>Contact Messages</h2>
 
+      {messages.length === 0 && (
+        <p style={{ textAlign: "center" }}>No messages found</p>
+      )}
+
       {messages.map((m) => (
         <div key={m._id} className="card">
-          <p><b>{m.firstName} {m.lastName}</b></p>
+          <p>
+            <b>
+              {m.firstName} {m.lastName}
+            </b>
+          </p>
           <p>{m.message}</p>
+
+          {m.phone ? (
+            <p>📞 {m.phone}</p>
+          ) : (
+            <p style={{ color: "red" }}>No phone number</p>
+          )}
 
           <textarea
             placeholder="Reply..."
@@ -73,17 +125,24 @@ export default function AdminMessages() {
 
           <div className="actions">
             <button disabled={loading} onClick={() => sendReply(m._id)}>
-              Reply
+              Reply (Email)
             </button>
-            <a href={`tel:${m.phone}`} className="call-btn">Call</a>
-            <a
-              href={`https://wa.me/${m.phone}`}
-              target="_blank"
-              rel="noreferrer"
+
+            <button
+              type="button"
+              className="call-btn"
+              onClick={() => callUser(m.phone)}
+            >
+              Call
+            </button>
+
+            <button
+              type="button"
               className="whatsapp-btn"
+              onClick={() => openWhatsApp(m.phone)}
             >
               WhatsApp
-            </a>
+            </button>
           </div>
         </div>
       ))}
