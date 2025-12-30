@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Toaster, toast } from "react-hot-toast";
 import "./AdminDashboard.css";
-import API from "../utils/api"; // ✅ IMPORTANT
+import API from "../utils/api";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -46,12 +46,15 @@ export default function AdminDashboard() {
     setLoading(true);
     try {
       await API.put(`/api/appointments/${id}/status`, { status });
-
       toast.success(`Appointment ${status}`);
       fetchAppointments();
 
       if (phone) {
-        const msg = `Hello, your appointment has been ${status}. Thank you for choosing WellSpa 🌿`;
+        const msg =
+          status === "approved"
+            ? "Hello! Your appointment at WellSpa has been APPROVED 🌿✨ We look forward to welcoming you."
+            : "Hello! Unfortunately, your appointment at WellSpa has been REJECTED. Please contact us to reschedule.";
+
         window.open(
           `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`,
           "_blank"
@@ -66,7 +69,6 @@ export default function AdminDashboard() {
 
   const deleteAppointment = async (id) => {
     if (!window.confirm("Delete this appointment?")) return;
-
     setLoading(true);
     try {
       await API.delete(`/api/appointments/${id}`);
@@ -113,7 +115,6 @@ export default function AdminDashboard() {
 
   const deleteMessage = async (id) => {
     if (!window.confirm("Delete this message?")) return;
-
     setLoading(true);
     try {
       await API.delete(`/api/contact/${id}`);
