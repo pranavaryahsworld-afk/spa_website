@@ -1,125 +1,125 @@
-import { useState } from "react";
-import axios from "axios";
-import { toast } from "react-hot-toast";
-import "./Contact.css";
-import API_BASE_URL from "../../utils/api";
+const express = require("express");
+const router = express.Router();
+const ContactMessage = require("../models/ContactMessage");
+const { Resend } = require("resend");
 
-export default function Contact() {
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    message: "",
-  });
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+/* =========================
+   CREATE MESSAGE (USER)
+========================= */
+router.post("/", async (req, res) => {
+  try {
+    const { firstName, lastName, email, phone, message } = req.body;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    try {
-      await axios.post(`${API_BASE_URL}/api/contact`, formData);
-      toast.success("Message sent successfully");
-      setFormData({
-        firstName: "",
-        lastName: "",
-        email: "",
-        phone: "",
-        message: "",
-      });
-    } catch {
-      toast.error("Failed to send message");
+    if (!firstName || !lastName || !email || !phone || !message) {
+      return res.status(400).json({ message: "All fields are required" });
     }
-  };
 
-  return (
-    <section className="contact-page">
-      <h2 className="contact-title">Contact Us</h2>
+    const newMessage = await ContactMessage.create({
+      firstName,
+      lastName,
+      email,
+      phone,
+      message,
+      isRead: false,
+    });
 
-      <div className="contact-container">
-        {/* LEFT: FORM */}
-        <form className="contact-form" onSubmit={handleSubmit}>
-          <div className="row">
-            <input
-              name="firstName"
-              placeholder="First Name"
-              value={formData.firstName}
-              onChange={handleChange}
-              required
-            />
-            <input
-              name="lastName"
-              placeholder="Last Name"
-              value={formData.lastName}
-              onChange={handleChange}
-              required
-            />
-          </div>
+    res.status(201).json({
+      success: true,
+      message: "Message sent successfully",
+      data: newMessage,
+    });
+  } catch (error) {
+    console.error("CONTACT CREATE ERROR:", error);
+    res.status(500).json({ message: "Failed to send message" });
+  }
+});
 
-          <input
-            name="email"
-            type="email"
-            placeholder="Email Address"
-            value={formData.email}
-            onChange={handleChange}
-            required
-          />
+/* =========================
+   GET ALL MESSAGES (ADMIN)
+========================= */
+router.get("/", async (req, res) => {
+  try {
+    const messages = await ContactMessage.find().sort({ createdAt: -1 });
+    res.json(messages);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch messages" });
+  }
+});
 
-          <input
-            name="phone"
-            placeholder="Mobile Number"
-            value={formData.phone}
-            onChange={handleChange}
-            required
-          />
+/* =========================
+   TOGGLE READ / UNREAD
+========================= */
+router.put("/:id/read", async (req, res) => {
+  try {
+    const { isRead } = req.body;
 
-          <textarea
-            name="message"
-            placeholder="Your Message"
-            value={formData.message}
-            onChange={handleChange}
-            required
-          />
+    const message = await ContactMessage.findByIdAndUpdate(
+      req.params.id,
+      { isRead },
+      { new: true }
+    );
 
-          <button type="submit" className="send-btn">
-            Send Message
-          </button>
-        </form>
+    if (!message) {
+      return res.status(404).json({ message: "Message not found" });
+    }
 
-        {/* RIGHT: COMPANY INFO */}
-        <div className="contact-info">
-          <h3>WellSpa</h3>
-          <p>Relax. Refresh. Renew.</p>
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to update read status" });
+  }
+});
 
-          <div className="info-item">
-            📍 <span>Mumbai, Maharashtra, India</span>
-          </div>
+/* =========================
+   DELETE MESSAGE (ADMIN)
+========================= */
+router.delete("/:id", async (req, res) => {
+  try {
+    await ContactMessage.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to delete message" });
+  }
+});
 
-          <div className="info-item">
-            📞 <span>+91 83559 95023</span>
-          </div>
+/* =========================
+   SEND REPLY (ADMIN EMAIL)
+========================= */
+router.post("/:id/reply", async (req, res) => {
+  try {
+    const { reply } = req.body;
 
-          <div className="info-item">
-            ✉️ <span>pranavgaikar287@gmail.com</span>
-          </div>
+    if (!reply || !reply.trim()) {
+      return res.status(400).json({ message: "Reply is required" });
+    }
 
-          <div className="info-item">
-            ⏰ <span>Mon – Sun: 10:00 AM – 9:00 PM</span>
-          </div>
-        </div>
-      </div>
+    const message = await ContactMessage.findById(req.params.id);
+    if (!message) {
+      return res.status(404).json({ message: "Message not found" });
+    }
 
-      {/* MAP */}
-      <div className="map-container">
-        <iframe
-          title="WellSpa Location"
-          src="https://www.google.com/maps?q=Mumbai&output=embed"
-          loading="lazy"
-        />
-      </div>
-    </section>
-  );
-}
+    await resend.emails.send({
+      from: process.env.EMAIL_FROM,
+      to: message.email,
+      subject: "Reply from WellSpa",
+      html: `
+        <p>Hello ${message.firstName},</p>
+        <p>${reply}</p>
+        <br />
+        <p>Regards,<br/>WellSpa Team</p>
+      `,
+    });
+
+    message.reply = reply;
+    message.isRead = true;
+    await message.save();
+
+    res.json({ success: true, message: "Reply sent successfully" });
+  } catch (err) {
+    console.error("REPLY ERROR:", err);
+    res.status(500).json({ message: "Failed to send reply" });
+  }
+});
+
+module.exports = router;

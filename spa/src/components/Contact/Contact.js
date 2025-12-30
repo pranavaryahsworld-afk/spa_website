@@ -21,12 +21,7 @@ export default function Contact() {
     e.preventDefault();
 
     try {
-      await axios.post(`${API_BASE_URL}/api/contact`, formData, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
+      await axios.post(`${API_BASE_URL}/api/contact`, formData);
       toast.success("Message sent successfully");
 
       setFormData({
@@ -93,24 +88,6 @@ export default function Contact() {
             Send Message
           </button>
         </form>
-
-        <div className="contact-info">
-          <h3>WellSpa</h3>
-          <p>Relax. Refresh. Renew.</p>
-
-          <div className="info-item">📍 Mumbai, Maharashtra, India</div>
-          <div className="info-item">📞 +91 83559 95023</div>
-          <div className="info-item">✉️ pranavgaikar287@gmail.com</div>
-          <div className="info-item">⏰ Mon – Sun: 10:00 AM – 9:00 PM</div>
-        </div>
-      </div>
-
-      <div className="map-container">
-        <iframe
-          title="WellSpa Location"
-          src="https://www.google.com/maps?q=Mumbai&output=embed"
-          loading="lazy"
-        />
       </div>
     </section>
   );
