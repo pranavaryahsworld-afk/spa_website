@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
-import "../components/Services/Services.css";
 import { useNavigate } from "react-router-dom";
+import "../components/Services/Services.css";
 import { toast } from "react-hot-toast";
-import API_BASE_URL from "../utils/api";
+import API from "../utils/api";
 
 export default function Services() {
   const [services, setServices] = useState([]);
@@ -16,12 +15,11 @@ export default function Services() {
 
   const fetchServices = async () => {
     try {
-const res = await axios.get(
-  `${API_BASE_URL}/api/services`
-);
+      const res = await API.get("/api/services");
       setServices(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Failed to fetch services", err);
+      toast.error("Failed to load services");
     } finally {
       setLoading(false);
     }
@@ -33,7 +31,6 @@ const res = await axios.get(
     const token = localStorage.getItem("token");
     if (!token) {
       toast("Please login to book an appointment");
-
       navigate("/login");
     } else {
       navigate("/#appointment");

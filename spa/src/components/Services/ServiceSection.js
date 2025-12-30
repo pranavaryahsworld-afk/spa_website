@@ -1,11 +1,8 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import "./ServiceSection.css";
 import { toast } from "react-hot-toast";
-import API_BASE_URL from "../../utils/api";
-
-
+import API from "../../utils/api";
 
 export default function ServiceSection() {
   const [services, setServices] = useState([]);
@@ -17,13 +14,11 @@ export default function ServiceSection() {
 
   const fetchServices = async () => {
     try {
-      const res = await axios.get(
-  `${API_BASE_URL}/api/services`
-);
-
-      setServices(res.data.slice(0, 3));
+      const res = await API.get("/api/services");
+      setServices(Array.isArray(res.data) ? res.data.slice(0, 3) : []);
     } catch (err) {
       console.error("Failed to fetch services", err);
+      toast.error("Failed to load services");
     }
   };
 
@@ -33,7 +28,6 @@ export default function ServiceSection() {
     const token = localStorage.getItem("token");
     if (!token) {
       toast("Please login to book an appointment");
-
       navigate("/login");
     } else {
       navigate("/#appointment");
