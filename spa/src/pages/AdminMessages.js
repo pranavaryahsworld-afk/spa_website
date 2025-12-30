@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { toast, Toaster } from "react-hot-toast";
 import "./AdminDashboard.css";
-import API_BASE_URL from "../utils/api";
+import API from "../utils/api";
 
 export default function AdminMessages() {
   const [messages, setMessages] = useState([]);
@@ -15,15 +15,14 @@ export default function AdminMessages() {
      FETCH MESSAGES
   ===================== */
   const fetchMessages = async () => {
-    try {
-      const res = await axios.get(`${API_BASE_URL}/api/contact`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setMessages(res.data);
-    } catch {
-      toast.error("Failed to load messages");
-    }
-  };
+  try {
+    const res = await API.get("/api/contact");
+    setMessages(res.data);
+  } catch {
+    toast.error("Failed to load messages");
+  }
+};
+
 
   useEffect(() => {
     fetchMessages();
@@ -42,11 +41,8 @@ export default function AdminMessages() {
 
     setLoading(true);
     try {
-      await axios.post(
-        `${API_BASE_URL}/api/contact/${id}/reply`,
-        { reply },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await API.post(`/api/contact/${id}/reply`, { reply });
+
 
       toast.success("Reply sent via email");
       setReplyText((prev) => ({ ...prev, [id]: "" }));
