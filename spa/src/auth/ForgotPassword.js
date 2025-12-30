@@ -1,18 +1,13 @@
 import { useState } from "react";
-import axios from "axios";
-import API_BASE_URL from "../utils/api";
+import API from "../utils/api";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     try {
-      const res = await axios.post(
-        `${API_BASE_URL}/api/auth/forgot-password`,
-        { email }
-      );
+      const res = await API.post("/api/auth/forgot-password", { email });
       alert(res.data.message);
     } catch (err) {
       alert(err.response?.data?.message || "Error");
@@ -31,7 +26,6 @@ export default function ForgotPassword() {
           onChange={(e) => setEmail(e.target.value)}
           required
         />
-
         <button type="submit">Send Reset Link</button>
       </form>
     </div>

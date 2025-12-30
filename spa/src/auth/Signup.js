@@ -1,13 +1,11 @@
 import { useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import "./Auth.css";
-import API_BASE_URL from "../utils/api";
+import API from "../utils/api";
 
 export default function Signup() {
   const navigate = useNavigate();
-
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     name: "",
@@ -23,7 +21,11 @@ export default function Signup() {
   const sendOTP = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${API_BASE_URL}/api/auth/signup-otp`, form);
+      await API.post("/api/auth/signup-otp", {
+        name: form.name,
+        email: form.email,
+        password: form.password,
+      });
       toast.success("OTP sent to email");
       setStep(2);
     } catch (err) {
@@ -34,7 +36,7 @@ export default function Signup() {
   const verifyOTP = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${API_BASE_URL}/api/auth/verify-otp`, {
+      await API.post("/api/auth/verify-otp", {
         email: form.email,
         otp: form.otp,
       });
@@ -51,13 +53,14 @@ export default function Signup() {
 
       {step === 1 && (
         <form onSubmit={sendOTP}>
-          <input name="name" placeholder="Name" onChange={handleChange} />
-          <input name="email" placeholder="Email" onChange={handleChange} />
+          <input name="name" placeholder="Name" onChange={handleChange} required />
+          <input name="email" placeholder="Email" onChange={handleChange} required />
           <input
             name="password"
             type="password"
             placeholder="Password"
             onChange={handleChange}
+            required
           />
           <button>Send OTP</button>
         </form>
@@ -69,6 +72,7 @@ export default function Signup() {
             name="otp"
             placeholder="Enter OTP"
             onChange={handleChange}
+            required
           />
           <button>Verify OTP</button>
         </form>

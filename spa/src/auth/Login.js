@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
 import { toast } from "react-hot-toast";
 import "./Auth.css";
-import API_BASE_URL from "../utils/api";
+import API from "../utils/api";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -21,7 +20,7 @@ export default function Login() {
 
     setLoading(true);
     try {
-      const res = await axios.post(`${API_BASE_URL}/api/auth/login`, {
+      const res = await API.post("/api/auth/login", {
         email,
         password,
       });
@@ -32,9 +31,9 @@ export default function Login() {
 
       toast.success("Login successful");
 
-setTimeout(() => {
-  navigate("/#appointment");
-}, 300);
+      setTimeout(() => {
+        navigate("/#appointment");
+      }, 300);
     } catch (err) {
       toast.error(err.response?.data?.message || "Login failed");
     } finally {
@@ -69,7 +68,6 @@ setTimeout(() => {
           </button>
         </form>
 
-        {/* 🔑 FORGOT PASSWORD */}
         <p className="forgot-link">
           <Link to="/forgot-password">Forgot password?</Link>
         </p>
