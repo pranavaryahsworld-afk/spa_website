@@ -3,10 +3,13 @@ const router = express.Router();
 const ContactMessage = require("../models/ContactMessage");
 const { Resend } = require("resend");
 
+/* =====================
+   RESEND CONFIG
+===================== */
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 /* =========================
-   CREATE MESSAGE (USER)
+   CREATE MESSAGE (PUBLIC)
 ========================= */
 router.post("/", async (req, res) => {
   try {
@@ -30,8 +33,8 @@ router.post("/", async (req, res) => {
       message: "Message sent successfully",
       data: newMessage,
     });
-  } catch (error) {
-    console.error("CONTACT CREATE ERROR:", error);
+  } catch (err) {
+    console.error("CONTACT CREATE ERROR:", err);
     res.status(500).json({ message: "Failed to send message" });
   }
 });
@@ -43,7 +46,7 @@ router.get("/", async (req, res) => {
   try {
     const messages = await ContactMessage.find().sort({ createdAt: -1 });
     res.json(messages);
-  } catch (err) {
+  } catch {
     res.status(500).json({ message: "Failed to fetch messages" });
   }
 });
@@ -66,7 +69,7 @@ router.put("/:id/read", async (req, res) => {
     }
 
     res.json({ success: true });
-  } catch (err) {
+  } catch {
     res.status(500).json({ message: "Failed to update read status" });
   }
 });
@@ -78,13 +81,13 @@ router.delete("/:id", async (req, res) => {
   try {
     await ContactMessage.findByIdAndDelete(req.params.id);
     res.json({ success: true });
-  } catch (err) {
+  } catch {
     res.status(500).json({ message: "Failed to delete message" });
   }
 });
 
 /* =========================
-   SEND REPLY (ADMIN EMAIL)
+   SEND REPLY (EMAIL ONLY)
 ========================= */
 router.post("/:id/reply", async (req, res) => {
   try {
