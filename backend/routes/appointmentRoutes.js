@@ -3,6 +3,34 @@ const router = express.Router();
 const Appointment = require("../models/Appointment");
 
 /* =====================
+   CREATE APPOINTMENT (USER)
+===================== */
+router.post("/", async (req, res) => {
+  try {
+    const { name, email, phone, treatment, date, timeSlot, message } = req.body;
+
+    if (!name || !email || !phone || !treatment || !date || !timeSlot) {
+      return res.status(400).json({ message: "All required fields must be filled" });
+    }
+
+    const appointment = await Appointment.create({
+      name,
+      email,
+      phone,
+      treatment,
+      date,
+      timeSlot,
+      message,
+      status: "pending",
+    });
+
+    res.status(201).json(appointment);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to book appointment" });
+  }
+});
+
+/* =====================
    GET ALL APPOINTMENTS (ADMIN)
 ===================== */
 router.get("/", async (req, res) => {

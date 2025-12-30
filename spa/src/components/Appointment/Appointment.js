@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
 import "./Appointment.css";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import API_BASE_URL from "../../utils/api";
+import API from "../../utils/api"; // ✅ FIXED
 
 export default function Appointment() {
   const navigate = useNavigate();
@@ -48,7 +47,6 @@ export default function Appointment() {
 
     const token = localStorage.getItem("token");
 
-    // 🔐 LOGIN CHECK
     if (!token) {
       toast("Please login to book an appointment");
       navigate("/login");
@@ -56,15 +54,7 @@ export default function Appointment() {
     }
 
     try {
-      await axios.post(
-        `${API_BASE_URL}/api/appointments`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await API.post("/api/appointments", formData); // ✅ FIXED
 
       setSuccess("Appointment booked successfully!");
       localStorage.removeItem("selectedService");
